@@ -1,0 +1,30 @@
+export const BOT_SESSION_DEFAULTS = Object.freeze({
+  activeDomain: null,
+  lastCommand: null,
+  lastSeenAt: null,
+  onboardingStartInFlight: false,
+  selectedRole: null,
+  pendingReferralCode: null,
+  onboardingFlow: null,
+  onboardingStep: null,
+  onboardingDraft: null,
+  searchFlow: null,
+  searchStep: null,
+  searchDraft: null,
+  searchResults: null,
+  searchPage: 0,
+  requestFlow: null,
+  requestStep: null,
+  requestDraft: null,
+});
+
+export const KNOWN_COMMANDS = Object.freeze([
+  '/start',
+  '/help',
+  '/onboarding',
+  '/client',
+  '/tailor',
+  '/affiliate',
+  '/search',
+  '/requests',
+]);
