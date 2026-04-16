@@ -17,6 +17,8 @@ import {
   validateTailorSpecialties,
   validateTailorWorkAddress,
 } from '../validators/tailor-onboarding.validator.js';
+import { logger } from '../../config/logger.js';
+import { serializeErrorForLog } from '../../utils/error-log.js';
 
 const resetTailorDraft = (ctx) => {
   ctx.session.onboardingFlow = 'tailor';
@@ -223,6 +225,15 @@ export const handleTailorBudgetRangeInput = async (ctx) => {
     budgetRange: result.value,
   };
 
+  logger.info(
+    {
+      event: 'tailor_budget_range_captured',
+      updateType: ctx.updateType,
+      hasBudgetRange: result.value.min !== null && result.value.max !== null,
+    },
+    'Captured tailor budget range input',
+  );
+
   await finalizeTailorOnboarding(ctx);
   return true;
 };
@@ -243,19 +254,34 @@ const finalizeTailorOnboarding = async (ctx) => {
     return;
   }
 
-  const tailor = await completeTailorOnboarding({
-    telegramUserId: String(ctx.from?.id ?? ''),
-    telegramUsername: ctx.from?.username ?? '',
-    fullName: draft.fullName,
-    businessName: draft.businessName,
-    publicName: draft.publicName,
-    country: draft.country,
-    city: draft.city,
-    area: draft.area,
-    workAddress: draft.workAddress,
-    specialties: draft.specialties,
-    budgetRange: draft.budgetRange ?? { min: null, max: null, currency: 'NGN' },
-  });
+  let tailor;
+
+  try {
+    tailor = await completeTailorOnboarding({
+      telegramUserId: String(ctx.from?.id ?? ''),
+      telegramUsername: ctx.from?.username ?? '',
+      fullName: draft.fullName,
+      businessName: draft.businessName,
+      publicName: draft.publicName,
+      country: draft.country,
+      city: draft.city,
+      area: draft.area,
+      workAddress: draft.workAddress,
+      specialties: draft.specialties,
+      budgetRange: draft.budgetRange ?? { min: null, max: null, currency: 'NGN' },
+    });
+  } catch (error) {
+    logger.error(
+      {
+        event: 'tailor_onboarding_finalize_failed',
+        error: serializeErrorForLog(error),
+        updateType: ctx.updateType,
+      },
+      'Tailor onboarding finalization failed',
+    );
+    await ctx.reply('We could not save your tailor profile right now. Please try again in a moment.');
+    return;
+  }
 
   ctx.session.onboardingFlow = null;
   ctx.session.onboardingStep = null;

@@ -31,7 +31,7 @@ export const sanitizedStringArray = (maxItemLength, maxItems = 20) => ({
 
 export const locationSchema = new mongoose.Schema(
   {
-    city: sanitizedString(80, { required: true, index: true }),
+    city: sanitizedString(80, { required: true }),
     state: sanitizedString(80, { default: '' }),
     country: sanitizedString(80, { required: true, default: 'Nigeria' }),
     area: sanitizedString(120, { default: '' }),

@@ -8,6 +8,32 @@ import { ApiError } from '../utils/api-error.js';
 import { trackReferral } from './referral.service.js';
 import { generateReferralCode } from '../utils/referral-code.js';
 
+const buildUpsertOptions = () => ({
+  new: true,
+  upsert: true,
+  runValidators: true,
+  setDefaultsOnInsert: true,
+  context: 'query',
+});
+
+const createAffiliateProfile = async (userId, payload, completedAt) =>
+  AffiliateProfile.findOneAndUpdate(
+    { userId },
+    {
+      $setOnInsert: {
+        userId,
+        affiliateCode: await generateUniqueAffiliateCode(),
+      },
+      $set: {
+        fullName: payload.fullName,
+        displayName: payload.displayName || payload.fullName,
+        phoneNumber: payload.phoneNumber ?? '',
+        onboardingCompletedAt: completedAt,
+      },
+    },
+    buildUpsertOptions(),
+  ).lean();
+
 const generateUniqueAffiliateCode = async () => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const candidate = generateReferralCode('AFF');
@@ -38,37 +64,31 @@ const upsertUser = async (payload, primaryRole) =>
         roles: primaryRole,
       },
     },
-    {
-      new: true,
-      upsert: true,
-      runValidators: true,
-    },
+    buildUpsertOptions(),
   ).lean();
 
 export const onboardAffiliate = async (payload) => {
   const user = await upsertUser(payload, 'affiliate');
   const completedAt = new Date();
 
-  const affiliate = await AffiliateProfile.findOneAndUpdate(
-    { userId: user._id },
-    {
-      $setOnInsert: {
-        userId: user._id,
-        affiliateCode: await generateUniqueAffiliateCode(),
-      },
-      $set: {
-        fullName: payload.fullName,
-        displayName: payload.displayName || payload.fullName,
-        phoneNumber: payload.phoneNumber ?? '',
-        onboardingCompletedAt: completedAt,
-      },
-    },
-    {
-      new: true,
-      upsert: true,
-      runValidators: true,
-    },
-  ).lean();
+  let affiliate = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      affiliate = await createAffiliateProfile(user._id, payload, completedAt);
+      break;
+    } catch (error) {
+      if (error?.code === 11000 && error?.keyPattern?.affiliateCode) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  if (!affiliate) {
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Unable to create affiliate profile');
+  }
 
   await User.updateOne(
     { _id: user._id },
@@ -123,11 +143,7 @@ export const onboardClient = async (payload) => {
         onboardingCompletedAt: completedAt,
       },
     },
-    {
-      new: true,
-      upsert: true,
-      runValidators: true,
-    },
+    buildUpsertOptions(),
   ).lean();
 
   await User.updateOne(
@@ -192,11 +208,7 @@ export const onboardTailor = async (payload) => {
         onboardingCompletedAt: completedAt,
       },
     },
-    {
-      new: true,
-      upsert: true,
-      runValidators: true,
-    },
+    buildUpsertOptions(),
   ).lean();
 
   await User.updateOne(

@@ -1,4 +1,7 @@
+import mongoose from 'mongoose';
 import { TailorProfile } from '../models/tailor-profile.model.js';
+import { logger } from '../config/logger.js';
+import { escapeRegExp } from '../utils/escape-regexp.js';
 
 const normalize = (value) => String(value ?? '').trim().toLowerCase();
 
@@ -44,14 +47,46 @@ export const calculateTailorMatchScore = ({ tailor, city, specialty, budgetRange
 };
 
 export const searchTailors = async ({ city, specialty, limit, budgetRange }) => {
-  const tailors = await TailorProfile.find({
-    'location.city': new RegExp(`^${city}$`, 'i'),
+  const safeCityPattern = new RegExp(`^${escapeRegExp(city)}$`, 'i');
+  const statusFilter = mongoose.trusted({ $in: ['active', 'pending_review'] });
+  const verificationStatusFilter = mongoose.trusted({ $in: ['pending', 'verified'] });
+  const tailorQuery = {
+    'location.city': safeCityPattern,
     isAvailable: true,
-    status: { $in: ['active', 'pending_review'] },
-    verificationStatus: { $in: ['pending', 'verified'] },
-  })
+    status: statusFilter,
+    verificationStatus: verificationStatusFilter,
+  };
+
+  logger.info(
+    {
+      event: 'search_tailors_query_built',
+      city,
+      specialty,
+      hasBudgetRange: budgetRange?.min !== null && budgetRange?.max !== null,
+      limit,
+      filters: {
+        cityPattern: safeCityPattern.source,
+        status: ['active', 'pending_review'],
+        verificationStatus: ['pending', 'verified'],
+        isAvailable: true,
+      },
+    },
+    'Built tailor search query',
+  );
+
+  const tailors = await TailorProfile.find(tailorQuery)
     .select('businessName publicName location workAddress specialties styles budgetRange verificationStatus status')
     .lean();
+
+  logger.info(
+    {
+      event: 'search_tailors_loaded',
+      city,
+      specialty,
+      candidateCount: tailors.length,
+    },
+    'Loaded tailor search candidates',
+  );
 
   const scoredTailors = tailors
     .map((tailor) => {

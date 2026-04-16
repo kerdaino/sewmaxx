@@ -6,6 +6,8 @@ import {
   validateRequestDueDate,
   validateRequestLocation,
 } from '../../src/bot/validators/request-post.validator.js';
+import { validateSearchBudget } from '../../src/bot/validators/search.validator.js';
+import { validateTailorBudgetRange } from '../../src/bot/validators/tailor-onboarding.validator.js';
 
 describe('validation logic', () => {
   it('sanitizes and validates affiliate onboarding payloads', () => {
@@ -25,6 +27,23 @@ describe('validation logic', () => {
 
     expect(result.isValid).toBe(false);
     expect(result.message).toContain('minimum cannot exceed');
+  });
+
+  it('accepts valid tailor budget ranges and skip', () => {
+    const ranged = validateTailorBudgetRange('10000-50000');
+    const skipped = validateTailorBudgetRange('skip');
+
+    expect(ranged.isValid).toBe(true);
+    expect(ranged.value).toEqual({ min: 10000, max: 50000, currency: 'NGN' });
+    expect(skipped.isValid).toBe(true);
+    expect(skipped.value).toEqual({ min: null, max: null, currency: 'NGN' });
+  });
+
+  it('accepts valid search budget ranges', () => {
+    const result = validateSearchBudget('10000 - 50000');
+
+    expect(result.isValid).toBe(true);
+    expect(result.value).toEqual({ min: 10000, max: 50000, currency: 'NGN' });
   });
 
   it('rejects impossible past due dates', () => {

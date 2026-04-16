@@ -10,6 +10,8 @@ import {
   validateRequestLocation,
   validateRequestOtherStyle,
 } from '../validators/request-post.validator.js';
+import { logger } from '../../config/logger.js';
+import { serializeErrorForLog } from '../../utils/error-log.js';
 
 const resetRequestDraft = (ctx) => {
   ctx.session.activeDomain = 'requests';
@@ -110,6 +112,16 @@ export const handleRequestBudgetInput = async (ctx) => {
   };
   ctx.session.requestStep = 'request_location';
 
+  logger.info(
+    {
+      event: 'request_budget_captured',
+      updateType: ctx.updateType,
+      min: result.value.min,
+      max: result.value.max,
+    },
+    'Captured request posting budget range',
+  );
+
   await ctx.reply('What location should we use for this request?');
   return true;
 };
@@ -197,14 +209,29 @@ export const handleRequestPublish = async (ctx) => {
 
   await ctx.answerCbQuery();
 
-  const request = await publishRequestPost({
-    telegramUserId: String(ctx.from?.id ?? ''),
-    outfitType: draft.outfitType,
-    style: draft.style,
-    budgetRange: draft.budgetRange,
-    location: draft.location,
-    dueDate: draft.dueDate,
-  });
+  let request;
+
+  try {
+    request = await publishRequestPost({
+      telegramUserId: String(ctx.from?.id ?? ''),
+      outfitType: draft.outfitType,
+      style: draft.style,
+      budgetRange: draft.budgetRange,
+      location: draft.location,
+      dueDate: draft.dueDate,
+    });
+  } catch (error) {
+    logger.error(
+      {
+        event: 'request_publish_failed',
+        error: serializeErrorForLog(error),
+        updateType: ctx.updateType,
+      },
+      'Request publishing failed',
+    );
+    await ctx.reply('We could not publish this request right now. Please try again shortly.');
+    return;
+  }
 
   ctx.session.requestFlow = null;
   ctx.session.requestStep = null;

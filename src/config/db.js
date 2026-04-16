@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { env } from './env.js';
 import { logger } from './logger.js';
+import { repairTailorProfileIndexes } from '../models/tailor-profile-indexes.js';
 
 export const connectDatabase = async () => {
   mongoose.set('strictQuery', true);
@@ -10,6 +11,8 @@ export const connectDatabase = async () => {
     dbName: env.MONGODB_DB_NAME,
     autoIndex: !env.isProduction,
   });
+
+  await repairTailorProfileIndexes();
 
   // Avoid logging the URI itself; the database name is enough for observability.
   logger.info({ dbName: env.MONGODB_DB_NAME }, 'MongoDB connected');

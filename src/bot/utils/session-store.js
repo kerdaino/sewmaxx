@@ -1,4 +1,5 @@
 import { env } from '../../config/env.js';
+import { securityConfig } from '../../config/security.js';
 import { BOT_SESSION_DEFAULTS } from '../constants.js';
 
 const sessionStore = new Map();
@@ -28,5 +29,19 @@ export const pruneExpiredSessions = () => {
     if (value.expiresAt <= Date.now()) {
       sessionStore.delete(key);
     }
+  }
+};
+
+export const enforceSessionStoreLimit = () => {
+  pruneExpiredSessions();
+
+  while (sessionStore.size >= securityConfig.botSession.maxSessions) {
+    const oldestSessionKey = sessionStore.keys().next().value;
+
+    if (!oldestSessionKey) {
+      break;
+    }
+
+    sessionStore.delete(oldestSessionKey);
   }
 };

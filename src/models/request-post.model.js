@@ -70,6 +70,12 @@ const requestPostSchema = new mongoose.Schema(
       default: '',
       select: false,
     },
+    dedupeKey: {
+      type: String,
+      trim: true,
+      default: '',
+      select: false,
+    },
     lastCoordinatorActionAt: {
       type: Date,
       default: null,
@@ -85,5 +91,15 @@ const requestPostSchema = new mongoose.Schema(
 
 requestPostSchema.index({ status: 1, 'location.city': 1, dueDate: 1 });
 requestPostSchema.index({ clientProfileId: 1, createdAt: -1 });
+requestPostSchema.index(
+  { dedupeKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      dedupeKey: { $type: 'string', $ne: '' },
+      status: { $in: ['draft', 'published', 'matching', 'assigned'] },
+    },
+  },
+);
 
 export const RequestPost = mongoose.model('RequestPost', requestPostSchema);

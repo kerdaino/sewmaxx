@@ -14,6 +14,8 @@ import {
   validateSearchLocation,
   validateSearchStyle,
 } from '../validators/search.validator.js';
+import { logger } from '../../config/logger.js';
+import { serializeErrorForLog } from '../../utils/error-log.js';
 
 const resetSearchDraft = (ctx) => {
   ctx.session.activeDomain = 'search';
@@ -101,6 +103,16 @@ export const handleSearchBudgetInput = async (ctx) => {
     budgetRange: result.value,
   };
 
+  logger.info(
+    {
+      event: 'client_search_budget_captured',
+      updateType: ctx.updateType,
+      min: result.value.min,
+      max: result.value.max,
+    },
+    'Captured client search budget range',
+  );
+
   await finalizeSearch(ctx);
   return true;
 };
@@ -136,12 +148,29 @@ const finalizeSearch = async (ctx) => {
     return;
   }
 
-  const { searchSession, matches } = await createSearchSession({
-    telegramUserId: String(ctx.from?.id ?? ''),
-    style: draft.style,
-    city: draft.city,
-    budgetRange: draft.budgetRange,
-  });
+  let searchResult;
+
+  try {
+    searchResult = await createSearchSession({
+      telegramUserId: String(ctx.from?.id ?? ''),
+      style: draft.style,
+      city: draft.city,
+      budgetRange: draft.budgetRange,
+    });
+  } catch (error) {
+    logger.error(
+      {
+        event: 'client_search_finalize_failed',
+        error: serializeErrorForLog(error),
+        updateType: ctx.updateType,
+      },
+      'Client search finalization failed',
+    );
+    await ctx.reply('We could not complete this search right now. Please try again shortly.');
+    return;
+  }
+
+  const { searchSession, matches } = searchResult;
 
   ctx.session.searchResults = {
     searchSessionId: String(searchSession._id),

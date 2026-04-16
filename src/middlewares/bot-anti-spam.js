@@ -21,6 +21,11 @@ const getBucket = (key) => {
 };
 
 export const botAntiSpamMiddleware = async (ctx, next) => {
+  if (!securityConfig.botSpam.enabled) {
+    await next();
+    return;
+  }
+
   const userId = String(ctx.from?.id ?? 'anonymous');
   const bucket = getBucket(userId);
   bucket.count += 1;

@@ -5,6 +5,7 @@ import { getBotWebhookCallback, startBot, stopBot } from './bot/index.js';
 import { connectDatabase } from './config/db.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
+import { telegramWebhookAuthMiddleware } from './middlewares/telegram-webhook-auth.js';
 import { serializeErrorForLog } from './utils/error-log.js';
 
 const bootstrap = async () => {
@@ -13,19 +14,7 @@ const bootstrap = async () => {
   let telegramWebhookMiddleware = null;
 
   if (env.BOT_MODE === 'webhook') {
-    telegramWebhookMiddleware = (req, res, next) => {
-      const secret = req.headers['x-telegram-bot-api-secret-token'];
-
-      if (secret !== env.TELEGRAM_WEBHOOK_SECRET) {
-        logger.warn({ requestId: req.id }, 'Rejected Telegram webhook request');
-        return res.status(401).json({
-          success: false,
-          message: 'Unauthorized',
-        });
-      }
-
-      return getBotWebhookCallback()(req, res, next);
-    };
+    telegramWebhookMiddleware = [telegramWebhookAuthMiddleware, getBotWebhookCallback()];
   }
 
   const app = createApp({ telegramWebhookMiddleware });

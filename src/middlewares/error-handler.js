@@ -14,6 +14,9 @@ export const errorHandler = (err, req, res, next) => {
   if (err instanceof ApiError) {
     statusCode = err.statusCode;
     message = err.message;
+  } else if (err?.type === 'entity.parse.failed' || err instanceof SyntaxError) {
+    statusCode = StatusCodes.BAD_REQUEST;
+    message = 'Invalid request payload';
   } else if (err instanceof mongoose.Error.ValidationError) {
     statusCode = StatusCodes.BAD_REQUEST;
     message = 'Validation failed';

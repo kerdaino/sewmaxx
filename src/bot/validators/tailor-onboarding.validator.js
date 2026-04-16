@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { sanitizeText } from '../../utils/sanitize.js';
+import { parseBudgetRangeInput } from '../utils/parse-budget-range.js';
 
 const validateField = (schema, value, message, maxLength) => {
   const candidate = sanitizeText(value, maxLength);
@@ -89,44 +90,28 @@ export const validateTailorSpecialties = (value) => {
 };
 
 export const validateTailorBudgetRange = (value) => {
-  const candidate = sanitizeText(value, 40).toLowerCase();
+  const result = parseBudgetRangeInput(value, { allowSkip: true });
 
-  if (!candidate || candidate === 'skip') {
-    return {
-      isValid: true,
-      value: {
-        min: null,
-        max: null,
-        currency: 'NGN',
-      },
-    };
-  }
-
-  const match = candidate.match(/^(\d+)\s*-\s*(\d+)$/);
-
-  if (!match) {
+  if (!result.isValid && result.reason === 'format') {
     return {
       isValid: false,
       message: 'Enter a budget range like 10000-50000, or send skip.',
     };
   }
 
-  const min = Number(match[1]);
-  const max = Number(match[2]);
+  if (!result.isValid && result.reason === 'too_large') {
+    return {
+      isValid: false,
+      message: 'Budget range is too large. Enter a realistic amount like 10000-50000, or send skip.',
+    };
+  }
 
-  if (Number.isNaN(min) || Number.isNaN(max) || min > max) {
+  if (!result.isValid) {
     return {
       isValid: false,
       message: 'Budget range must be valid and the minimum cannot exceed the maximum.',
     };
   }
 
-  return {
-    isValid: true,
-    value: {
-      min,
-      max,
-      currency: 'NGN',
-    },
-  };
+  return result;
 };

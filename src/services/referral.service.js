@@ -35,6 +35,9 @@ export const trackReferral = async (payload) => {
     {
       new: true,
       upsert: true,
+      runValidators: true,
+      setDefaultsOnInsert: true,
+      context: 'query',
     },
   ).lean();
 

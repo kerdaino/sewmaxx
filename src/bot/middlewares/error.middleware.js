@@ -11,6 +11,16 @@ export const handleBotError = async (error, ctx) => {
   );
 
   if (ctx?.reply) {
-    await ctx.reply('Something went wrong. Please try again later.');
+    try {
+      await ctx.reply('Something went wrong. Please try again later.');
+    } catch (replyError) {
+      logger.error(
+        {
+          error: serializeErrorForLog(replyError),
+          updateType: ctx?.updateType,
+        },
+        'Failed to send Telegram bot error response',
+      );
+    }
   }
 };

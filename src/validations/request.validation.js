@@ -2,12 +2,19 @@ import Joi from 'joi';
 
 export const createServiceRequestSchema = Joi.object({
   clientTelegramUserId: Joi.string().trim().max(40).required(),
-  category: Joi.string().trim().min(2).max(100).required(),
-  description: Joi.string().trim().min(10).max(1000).required(),
+  outfitType: Joi.string()
+    .trim()
+    .valid('agbada', 'dress', 'senator', 'shirt', 'trouser', 'wedding', 'uniform', 'other')
+    .required(),
+  style: Joi.string().trim().max(80).allow('').default(''),
+  notes: Joi.string().trim().max(600).allow('').default(''),
+  country: Joi.string().trim().min(2).max(80).required(),
   city: Joi.string().trim().min(2).max(80).required(),
+  area: Joi.string().trim().max(120).allow('').default(''),
   budgetMin: Joi.number().min(0).optional(),
   budgetMax: Joi.number().min(0).optional(),
-  preferredTimeline: Joi.string().trim().max(120).allow('').optional(),
+  currency: Joi.string().trim().uppercase().valid('NGN', 'USD').default('NGN'),
+  dueDate: Joi.date().iso().required(),
 }).custom((value, helpers) => {
   if (
     typeof value.budgetMin === 'number' &&

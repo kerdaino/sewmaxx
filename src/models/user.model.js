@@ -12,8 +12,6 @@ const userSchema = new mongoose.Schema(
     }),
     telegramUsername: sanitizedString(64, {
       default: '',
-      index: true,
-      sparse: true,
     }),
     firstName: sanitizedString(80, { default: '' }),
     lastName: sanitizedString(80, { default: '' }),
