@@ -4,6 +4,17 @@ import { logger } from '../config/logger.js';
 import { escapeRegExp } from '../utils/escape-regexp.js';
 
 const normalize = (value) => String(value ?? '').trim().toLowerCase();
+const PUBLIC_TAILOR_SEARCH_FIELDS = [
+  'businessName',
+  'publicName',
+  'location',
+  'specialties',
+  'styles',
+  'budgetRange',
+  'verificationStatus',
+  'status',
+].join(' ');
+const toPublicTailorSearchResult = ({ workAddress, ...tailor }) => tailor;
 
 export const getBudgetCompatibilityScore = (tailorBudgetRange, requestedBudgetRange) => {
   if (
@@ -50,8 +61,8 @@ export const calculateTailorMatchScore = ({ tailor, city, specialty, budgetRange
 
 export const searchTailors = async ({ city, specialty, limit, budgetRange }) => {
   const safeCityPattern = new RegExp(`^${escapeRegExp(city)}$`, 'i');
-  const statusFilter = mongoose.trusted({ $in: ['active', 'pending_review'] });
-  const verificationStatusFilter = mongoose.trusted({ $in: ['pending', 'verified'] });
+  const statusFilter = mongoose.trusted({ $in: ['active'] });
+  const verificationStatusFilter = mongoose.trusted({ $in: ['approved'] });
   const tailorQuery = {
     'location.city': safeCityPattern,
     isAvailable: true,
@@ -59,36 +70,9 @@ export const searchTailors = async ({ city, specialty, limit, budgetRange }) => 
     verificationStatus: verificationStatusFilter,
   };
 
-  logger.info(
-    {
-      event: 'search_tailors_query_built',
-      city,
-      specialty,
-      hasBudgetRange: budgetRange?.min !== null && budgetRange?.max !== null,
-      limit,
-      filters: {
-        cityPattern: safeCityPattern.source,
-        status: ['active', 'pending_review'],
-        verificationStatus: ['pending', 'verified'],
-        isAvailable: true,
-      },
-    },
-    'Built tailor search query',
-  );
-
   const tailors = await TailorProfile.find(tailorQuery)
-    .select('businessName publicName location workAddress specialties styles budgetRange verificationStatus status')
+    .select(PUBLIC_TAILOR_SEARCH_FIELDS)
     .lean();
-
-  logger.info(
-    {
-      event: 'search_tailors_loaded',
-      city,
-      specialty,
-      candidateCount: tailors.length,
-    },
-    'Loaded tailor search candidates',
-  );
 
   const scoredTailors = tailors
     .map((tailor) => {
@@ -104,13 +88,25 @@ export const searchTailors = async ({ city, specialty, limit, budgetRange }) => 
       });
 
       return {
-        ...tailor,
+        ...toPublicTailorSearchResult(tailor),
         score,
       };
     })
     .filter((tailor) => tailor.score >= 5)
     .sort((left, right) => right.score - left.score)
     .slice(0, limit);
+
+  logger.info(
+    {
+      event: 'search_tailors_executed',
+      specialty,
+      limit,
+      candidateCount: tailors.length,
+      resultCount: scoredTailors.length,
+      hasBudgetRange: budgetRange?.min !== null && budgetRange?.max !== null,
+    },
+    'Tailor search executed',
+  );
 
   return scoredTailors;
 };

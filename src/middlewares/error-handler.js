@@ -25,16 +25,25 @@ export const errorHandler = (err, req, res, next) => {
     message = 'Duplicate record';
   }
 
-  // Log only the minimum useful diagnostic detail so sensitive payloads do not leak.
-  logger.error(
-    {
-      error: serializeErrorForLog(err),
-      requestId: req.id,
-      path: req.originalUrl,
-      method: req.method,
-    },
-    'Request failed',
-  );
+  const logPayload = {
+    error: serializeErrorForLog(err),
+    requestId: req.id,
+    path: req.originalUrl,
+    method: req.method,
+    statusCode,
+  };
+
+  if (statusCode >= StatusCodes.INTERNAL_SERVER_ERROR) {
+    logger.error(
+      logPayload,
+      'Request failed',
+    );
+  } else {
+    logger.warn(
+      logPayload,
+      'Request rejected',
+    );
+  }
 
   res.status(statusCode).json({
     success: false,

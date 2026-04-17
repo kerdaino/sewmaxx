@@ -42,7 +42,7 @@ describe('tailor request visibility service', () => {
           currency: 'NGN',
         },
         dueDate: '2099-02-01T00:00:00.000Z',
-        status: 'published',
+        status: 'pending',
       },
       1,
     );

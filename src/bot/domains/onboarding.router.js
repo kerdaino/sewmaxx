@@ -11,6 +11,7 @@ import {
   handleClientCityInput,
   handleClientCountryInput,
   handleClientFullNameInput,
+  handleClientPhoneNumberInput,
   restartClientOnboarding,
   startClientOnboarding,
 } from '../handlers/client-onboarding.handler.js';
@@ -20,6 +21,7 @@ import {
   handleTailorCityInput,
   handleTailorCountryInput,
   handleTailorFullNameInput,
+  handleTailorPhoneNumberInput,
   handleTailorPublicNameInput,
   handleTailorSpecialtiesInput,
   handleTailorUseBusinessName,
@@ -80,6 +82,11 @@ onboardingRouter.on('text', async (ctx, next) => {
       return;
     }
 
+    if (ctx.session.onboardingStep === 'client_phone_number') {
+      await handleClientPhoneNumberInput(ctx);
+      return;
+    }
+
     if (ctx.session.onboardingStep === 'client_country') {
       await handleClientCountryInput(ctx);
       return;
@@ -99,6 +106,11 @@ onboardingRouter.on('text', async (ctx, next) => {
   if (ctx.session.onboardingFlow === 'tailor') {
     if (ctx.session.onboardingStep === 'tailor_full_name') {
       await handleTailorFullNameInput(ctx);
+      return;
+    }
+
+    if (ctx.session.onboardingStep === 'tailor_phone_number') {
+      await handleTailorPhoneNumberInput(ctx);
       return;
     }
 

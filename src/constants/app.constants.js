@@ -5,9 +5,10 @@ export const USER_TYPES = Object.freeze({
 });
 
 export const REQUEST_STATUS = Object.freeze({
-  OPEN: 'open',
-  MATCHING: 'matching',
-  CLOSED: 'closed',
+  PENDING: 'pending',
+  REVIEWING: 'reviewing',
+  ASSIGNED: 'assigned',
+  COMPLETED: 'completed',
 });
 
 export const BOT_MODES = Object.freeze({

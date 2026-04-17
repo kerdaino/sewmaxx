@@ -14,12 +14,10 @@ const affiliateProfileSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
       unique: true,
-      index: true,
     },
     affiliateCode: sanitizedString(24, {
       required: true,
       unique: true,
-      index: true,
       uppercase: true,
       immutable: true,
     }),
@@ -32,7 +30,7 @@ const affiliateProfileSchema = new mongoose.Schema(
     },
     verificationStatus: {
       type: String,
-      enum: ['pending', 'verified', 'rejected'],
+      enum: ['pending', 'approved', 'rejected'],
       default: 'pending',
       index: true,
     },

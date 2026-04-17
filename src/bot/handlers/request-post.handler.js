@@ -10,17 +10,34 @@ import {
   validateRequestLocation,
   validateRequestOtherStyle,
 } from '../validators/request-post.validator.js';
+import { ensureBotRoleAccess } from '../services/role-access.service.js';
 import { logger } from '../../config/logger.js';
 import { serializeErrorForLog } from '../../utils/error-log.js';
+
+const REQUEST_PUBLISH_DEDUPE_WINDOW_MS = 30 * 1000;
 
 const resetRequestDraft = (ctx) => {
   ctx.session.activeDomain = 'requests';
   ctx.session.requestFlow = 'client_request';
   ctx.session.requestStep = 'request_outfit_type';
   ctx.session.requestDraft = {};
+  ctx.session.requestPublishInFlight = false;
 };
 
+const buildRequestPublishFingerprint = (draft) =>
+  JSON.stringify({
+    outfitType: draft.outfitType,
+    style: draft.style,
+    budgetRange: draft.budgetRange,
+    location: draft.location,
+    dueDate: draft.dueDate instanceof Date ? draft.dueDate.toISOString() : String(draft.dueDate ?? ''),
+  });
+
 export const startRequestPosting = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return;
+  }
+
   const telegramUserId = String(ctx.from?.id ?? '');
   const eligibility = await ensureClientCanPostRequest(telegramUserId);
 
@@ -40,6 +57,10 @@ export const startRequestPosting = async (ctx) => {
 };
 
 export const restartRequestPosting = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client', { sendReplyMessage: !ctx.callbackQuery }))) {
+    return;
+  }
+
   const telegramUserId = String(ctx.from?.id ?? '');
   const eligibility = await ensureClientCanPostRequest(telegramUserId);
 
@@ -56,6 +77,15 @@ export const restartRequestPosting = async (ctx) => {
 };
 
 export const handleRequestOutfitSelection = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client', { sendReplyMessage: false }))) {
+    return;
+  }
+
+  if (ctx.session.requestFlow !== 'client_request') {
+    await ctx.answerCbQuery('Start /requests first');
+    return;
+  }
+
   const outfitType = ctx.match?.[1];
 
   if (!outfitType) {
@@ -81,6 +111,10 @@ export const handleRequestOutfitSelection = async (ctx) => {
 };
 
 export const handleRequestOtherStyleInput = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return true;
+  }
+
   const result = validateRequestOtherStyle(ctx.state.sanitizedText ?? '');
 
   if (!result.isValid) {
@@ -99,6 +133,10 @@ export const handleRequestOtherStyleInput = async (ctx) => {
 };
 
 export const handleRequestBudgetInput = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return true;
+  }
+
   const result = validateRequestBudget(ctx.state.sanitizedText ?? '');
 
   if (!result.isValid) {
@@ -112,21 +150,15 @@ export const handleRequestBudgetInput = async (ctx) => {
   };
   ctx.session.requestStep = 'request_location';
 
-  logger.info(
-    {
-      event: 'request_budget_captured',
-      updateType: ctx.updateType,
-      min: result.value.min,
-      max: result.value.max,
-    },
-    'Captured request posting budget range',
-  );
-
   await ctx.reply('What location should we use for this request?');
   return true;
 };
 
 export const handleRequestLocationInput = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return true;
+  }
+
   const result = validateRequestLocation(ctx.state.sanitizedText ?? '');
 
   if (!result.isValid) {
@@ -151,6 +183,10 @@ export const handleRequestLocationInput = async (ctx) => {
 };
 
 export const handleRequestDueDateInput = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return true;
+  }
+
   const result = validateRequestDueDate(ctx.state.sanitizedText ?? '');
 
   if (!result.isValid) {
@@ -170,6 +206,15 @@ export const handleRequestDueDateInput = async (ctx) => {
 };
 
 export const handleRequestEdit = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client', { sendReplyMessage: false }))) {
+    return;
+  }
+
+  if (ctx.session.requestFlow !== 'client_request') {
+    await ctx.answerCbQuery('Start /requests first');
+    return;
+  }
+
   const field = ctx.match?.[1];
 
   await ctx.answerCbQuery();
@@ -199,7 +244,17 @@ export const handleRequestEdit = async (ctx) => {
 };
 
 export const handleRequestPublish = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client', { sendReplyMessage: false }))) {
+    return;
+  }
+
+  if (ctx.session.requestFlow !== 'client_request' || ctx.session.requestStep !== 'request_confirm') {
+    await ctx.answerCbQuery('Complete /requests first');
+    return;
+  }
+
   const draft = ctx.session.requestDraft ?? {};
+  const publishFingerprint = buildRequestPublishFingerprint(draft);
 
   if (!draft.outfitType || !draft.style || !draft.budgetRange || !draft.location || !draft.dueDate) {
     await ctx.answerCbQuery('Complete the summary first');
@@ -207,6 +262,21 @@ export const handleRequestPublish = async (ctx) => {
     return;
   }
 
+  if (ctx.session.requestPublishInFlight) {
+    await ctx.answerCbQuery('This request is already being published');
+    return;
+  }
+
+  if (
+    ctx.session.lastPublishedRequestFingerprint === publishFingerprint &&
+    typeof ctx.session.lastPublishedRequestAt === 'number' &&
+    Date.now() - ctx.session.lastPublishedRequestAt < REQUEST_PUBLISH_DEDUPE_WINDOW_MS
+  ) {
+    await ctx.answerCbQuery('This request was already submitted');
+    return;
+  }
+
+  ctx.session.requestPublishInFlight = true;
   await ctx.answerCbQuery();
 
   let request;
@@ -226,13 +296,18 @@ export const handleRequestPublish = async (ctx) => {
         event: 'request_publish_failed',
         error: serializeErrorForLog(error),
         updateType: ctx.updateType,
+        outfitType: draft.outfitType,
       },
       'Request publishing failed',
     );
     await ctx.reply('We could not publish this request right now. Please try again shortly.');
+    ctx.session.requestPublishInFlight = false;
     return;
   }
 
+  ctx.session.lastPublishedRequestFingerprint = publishFingerprint;
+  ctx.session.lastPublishedRequestAt = Date.now();
+  ctx.session.requestPublishInFlight = false;
   ctx.session.requestFlow = null;
   ctx.session.requestStep = null;
   ctx.session.requestDraft = null;

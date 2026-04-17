@@ -30,7 +30,7 @@ describe('request flow service', () => {
   it('maps request publishing data correctly', async () => {
     const { publishRequestPost } = await import('../../src/bot/services/request-flow.service.js');
 
-    createServiceRequest.mockResolvedValue({ id: 'req-1', status: 'published' });
+    createServiceRequest.mockResolvedValue({ id: 'req-1', status: 'pending' });
 
     await publishRequestPost({
       telegramUserId: '123',

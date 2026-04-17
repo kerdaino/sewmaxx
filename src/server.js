@@ -6,10 +6,17 @@ import { connectDatabase } from './config/db.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { telegramWebhookAuthMiddleware } from './middlewares/telegram-webhook-auth.js';
-import { serializeErrorForLog } from './utils/error-log.js';
+import { getStartupErrorLogContext, serializeErrorForLog } from './utils/error-log.js';
 
 const bootstrap = async () => {
-  await connectDatabase();
+  let startupStage = 'database';
+
+  try {
+    await connectDatabase();
+  } catch (error) {
+    error.stage = startupStage;
+    throw error;
+  }
 
   let telegramWebhookMiddleware = null;
 
@@ -23,11 +30,36 @@ const bootstrap = async () => {
   server.requestTimeout = 15_000;
   server.keepAliveTimeout = 5_000;
 
-  await startBot();
+  startupStage = 'bot';
+  try {
+    await startBot();
+  } catch (error) {
+    error.stage = startupStage;
+    throw error;
+  }
 
-  server.listen(env.PORT, () => {
-    logger.info({ port: env.PORT, apiPrefix: env.API_PREFIX }, 'Sewmaxx server started');
-  });
+  startupStage = 'server_listen';
+  try {
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(env.PORT, () => {
+        server.off('error', reject);
+        logger.info(
+          {
+            port: env.PORT,
+            apiPrefix: env.API_PREFIX,
+            botMode: env.BOT_MODE,
+            nodeEnv: env.NODE_ENV,
+          },
+          'Sewmaxx server started',
+        );
+        resolve();
+      });
+    });
+  } catch (error) {
+    error.stage = startupStage;
+    throw error;
+  }
 
   let isShuttingDown = false;
 
@@ -69,6 +101,12 @@ const bootstrap = async () => {
 };
 
 bootstrap().catch((error) => {
-  logger.fatal({ error: serializeErrorForLog(error) }, 'Fatal startup error');
+  logger.fatal(
+    {
+      error: serializeErrorForLog(error),
+      ...getStartupErrorLogContext(error, error?.stage ?? undefined),
+    },
+    'Fatal startup error',
+  );
   process.exit(1);
 });

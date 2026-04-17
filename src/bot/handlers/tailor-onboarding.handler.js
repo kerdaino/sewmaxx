@@ -13,10 +13,12 @@ import {
   validateTailorCity,
   validateTailorCountry,
   validateTailorFullName,
+  validateTailorPhoneNumber,
   validateTailorPublicName,
   validateTailorSpecialties,
   validateTailorWorkAddress,
 } from '../validators/tailor-onboarding.validator.js';
+import { buildNextStepsMessage } from '../services/role-guidance.service.js';
 import { logger } from '../../config/logger.js';
 import { serializeErrorForLog } from '../../utils/error-log.js';
 
@@ -73,6 +75,24 @@ export const handleTailorFullNameInput = async (ctx) => {
   ctx.session.onboardingDraft = {
     ...(ctx.session.onboardingDraft ?? {}),
     fullName: result.value,
+  };
+  ctx.session.onboardingStep = 'tailor_phone_number';
+
+  await ctx.reply('What phone number should we save for manual coordination?');
+  return true;
+};
+
+export const handleTailorPhoneNumberInput = async (ctx) => {
+  const result = validateTailorPhoneNumber(ctx.state.sanitizedText ?? '');
+
+  if (!result.isValid) {
+    await ctx.reply(result.message);
+    return true;
+  }
+
+  ctx.session.onboardingDraft = {
+    ...(ctx.session.onboardingDraft ?? {}),
+    phoneNumber: result.value,
   };
   ctx.session.onboardingStep = 'tailor_business_name';
 
@@ -225,15 +245,6 @@ export const handleTailorBudgetRangeInput = async (ctx) => {
     budgetRange: result.value,
   };
 
-  logger.info(
-    {
-      event: 'tailor_budget_range_captured',
-      updateType: ctx.updateType,
-      hasBudgetRange: result.value.min !== null && result.value.max !== null,
-    },
-    'Captured tailor budget range input',
-  );
-
   await finalizeTailorOnboarding(ctx);
   return true;
 };
@@ -243,6 +254,7 @@ const finalizeTailorOnboarding = async (ctx) => {
 
   if (
     !draft.fullName ||
+    !draft.phoneNumber ||
     !draft.businessName ||
     !draft.publicName ||
     !draft.country ||
@@ -261,6 +273,7 @@ const finalizeTailorOnboarding = async (ctx) => {
       telegramUserId: String(ctx.from?.id ?? ''),
       telegramUsername: ctx.from?.username ?? '',
       fullName: draft.fullName,
+      phoneNumber: draft.phoneNumber,
       businessName: draft.businessName,
       publicName: draft.publicName,
       country: draft.country,
@@ -293,4 +306,5 @@ const finalizeTailorOnboarding = async (ctx) => {
     buildTailorSummary({ tailor }),
     buildTailorOnboardingControls(),
   );
+  await ctx.reply(buildNextStepsMessage('tailor'));
 };

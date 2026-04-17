@@ -27,6 +27,17 @@ export const validateTailorFullName = (value) =>
     120,
   );
 
+export const validateTailorPhoneNumber = (value) =>
+  validateField(
+    Joi.string()
+      .trim()
+      .pattern(/^\+?[0-9 ()-]{7,30}$/)
+      .required(),
+    value,
+    'Please enter a valid phone number using 7 to 30 characters.',
+    30,
+  );
+
 export const validateTailorBusinessName = (value) =>
   validateField(
     Joi.string().trim().min(2).max(120).required(),

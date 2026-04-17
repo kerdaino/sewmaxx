@@ -8,7 +8,6 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       immutable: true,
-      index: true,
     }),
     telegramUsername: sanitizedString(64, {
       default: '',

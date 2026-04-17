@@ -83,4 +83,36 @@ describe('start flow service', () => {
 
     expect(message).toContain('client, affiliate');
   });
+
+  it('does not force existing users back to active status during bot sync', async () => {
+    const { syncTelegramUserFromContext } = await import('../../src/bot/services/start-flow.service.js');
+
+    userFindOneAndUpdate.mockReturnValue({
+      lean: vi.fn().mockResolvedValue({ _id: 'user-1' }),
+    });
+
+    await syncTelegramUserFromContext({
+      from: {
+        id: 123,
+        username: 'blocked_user',
+        first_name: 'Blocked',
+        last_name: 'User',
+        language_code: 'en',
+      },
+    });
+
+    expect(userFindOneAndUpdate).toHaveBeenCalledWith(
+      { telegramUserId: '123' },
+      expect.objectContaining({
+        $setOnInsert: expect.objectContaining({
+          telegramUserId: '123',
+          status: 'active',
+        }),
+        $set: expect.not.objectContaining({
+          status: 'active',
+        }),
+      }),
+      expect.any(Object),
+    );
+  });
 });

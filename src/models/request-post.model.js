@@ -54,8 +54,8 @@ const requestPostSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['draft', 'published', 'matching', 'assigned', 'closed', 'cancelled'],
-      default: 'published',
+      enum: ['pending', 'reviewing', 'assigned', 'completed'],
+      default: 'pending',
       index: true,
     },
     coordinatorStatus: {
@@ -97,7 +97,7 @@ requestPostSchema.index(
     unique: true,
     partialFilterExpression: {
       dedupeKey: { $type: 'string', $ne: '' },
-      status: { $in: ['draft', 'published', 'matching', 'assigned'] },
+      status: { $in: ['pending', 'reviewing', 'assigned'] },
     },
   },
 );

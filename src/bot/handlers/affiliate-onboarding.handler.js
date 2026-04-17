@@ -11,6 +11,7 @@ import {
   validateAffiliateDisplayName,
   validateAffiliateFullName,
 } from '../validators/affiliate-onboarding.validator.js';
+import { buildNextStepsMessage } from '../services/role-guidance.service.js';
 import { buildTelegramReferralLink } from '../utils/build-telegram-referral-link.js';
 
 const resetAffiliateDraft = (ctx) => {
@@ -128,4 +129,5 @@ const finalizeAffiliateOnboarding = async (ctx, displayName) => {
     buildAffiliateSummary(result),
     buildAffiliateSummaryKeyboard(result.referralLink),
   );
+  await ctx.reply(buildNextStepsMessage('affiliate'));
 };

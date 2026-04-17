@@ -23,13 +23,13 @@ export const syncTelegramUserFromContext = async (ctx) => {
     {
       $setOnInsert: {
         telegramUserId,
+        status: 'active',
       },
       $set: {
         telegramUsername,
         firstName,
         lastName,
         languageCode,
-        status: 'active',
       },
     },
     {

@@ -24,5 +24,9 @@ export const createServiceRequestSchema = Joi.object({
     return helpers.error('any.invalid');
   }
 
+  if (value.outfitType === 'other' && !String(value.style ?? '').trim()) {
+    return helpers.error('any.invalid');
+  }
+
   return value;
 }, 'budget range validation');

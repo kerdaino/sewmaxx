@@ -1,4 +1,5 @@
 import { Composer } from 'telegraf';
+import adminRouter from './domains/admin.router.js';
 import affiliateRouter from './domains/affiliate.router.js';
 import onboardingRouter from './domains/onboarding.router.js';
 import requestsRouter from './domains/requests.router.js';
@@ -14,6 +15,7 @@ export const createBotRouter = () => {
   router.command('help', handleHelpCommand);
   router.action(/^start:role:(client|tailor|affiliate)$/, handleStartRoleSelection);
 
+  router.use(adminRouter);
   router.use(onboardingRouter);
   router.use(affiliateRouter);
   router.use(searchRouter);

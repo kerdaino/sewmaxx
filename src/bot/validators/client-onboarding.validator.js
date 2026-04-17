@@ -2,6 +2,10 @@ import Joi from 'joi';
 import { sanitizeText } from '../../utils/sanitize.js';
 
 const fullNameSchema = Joi.string().trim().min(2).max(120).required();
+const phoneNumberSchema = Joi.string()
+  .trim()
+  .pattern(/^\+?[0-9 ()-]{7,30}$/)
+  .required();
 const countrySchema = Joi.string().trim().min(2).max(80).required();
 const citySchema = Joi.string().trim().min(2).max(80).required();
 const areaSchema = Joi.string().trim().min(2).max(120).required();
@@ -29,6 +33,14 @@ export const validateClientFullName = (value) =>
     value,
     'Please enter a valid full name using 2 to 120 characters.',
     120,
+  );
+
+export const validateClientPhoneNumber = (value) =>
+  validateField(
+    phoneNumberSchema,
+    value,
+    'Please enter a valid phone number using 7 to 30 characters.',
+    30,
   );
 
 export const validateClientCountry = (value) =>

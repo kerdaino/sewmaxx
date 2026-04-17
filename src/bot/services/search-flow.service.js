@@ -5,7 +5,7 @@ import { logger } from '../../config/logger.js';
 import { searchTailors } from '../../services/search.service.js';
 import { ApiError } from '../../utils/api-error.js';
 
-const SEARCH_BATCH_SIZE = 3;
+export const SEARCH_BATCH_SIZE = 3;
 
 const getUserAndClientProfile = async (telegramUserId) => {
   const user = await User.findOne({ telegramUserId }).select('_id').lean();
@@ -66,12 +66,14 @@ export const createSearchSession = async ({ telegramUserId, style, city, budgetR
 
   logger.info(
     {
-      event: 'tailor_matching_completed',
+      event: 'search_execution_completed',
       searchSessionId: searchSession._id,
+      clientProfileId: clientProfile._id,
+      userId: user._id,
       matchCount: matches.length,
-      matchedTailorIds: matches.map((match) => String(match._id)),
+      status: searchSession.status,
     },
-    'Tailor matching completed',
+    'Client search execution completed',
   );
 
   return {

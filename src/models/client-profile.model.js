@@ -15,7 +15,6 @@ const clientProfileSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
       unique: true,
-      index: true,
     },
     fullName: sanitizedString(120, { required: true }),
     phoneNumber: sanitizedString(30, { default: '', select: false }),

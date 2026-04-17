@@ -16,6 +16,9 @@ export const BOT_SESSION_DEFAULTS = Object.freeze({
   requestFlow: null,
   requestStep: null,
   requestDraft: null,
+  requestPublishInFlight: false,
+  lastPublishedRequestFingerprint: null,
+  lastPublishedRequestAt: null,
   tailorRequestPage: 0,
 });
 

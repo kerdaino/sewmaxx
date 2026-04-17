@@ -7,7 +7,7 @@ import { getBudgetCompatibilityScore } from '../../services/search.service.js';
 import { ApiError } from '../../utils/api-error.js';
 import { escapeRegExp } from '../../utils/escape-regexp.js';
 
-const REQUEST_BATCH_SIZE = 3;
+export const REQUEST_BATCH_SIZE = 3;
 
 const normalize = (value) => String(value ?? '').trim().toLowerCase();
 
@@ -88,10 +88,12 @@ export const getTailorRequestMatches = async ({ telegramUserId, page = 0 }) => {
   }
 
   const safeCityPattern = new RegExp(`^${escapeRegExp(tailorProfile.location?.city ?? '')}$`, 'i');
+  const activeRequestStatusFilter = mongoose.trusted({ $in: ['pending', 'reviewing', 'assigned'] });
+  const futureDueDateFilter = mongoose.trusted({ $gt: new Date() });
   const requestQuery = {
     'location.city': safeCityPattern,
-    status: mongoose.trusted({ $in: ['published', 'matching'] }),
-    dueDate: { $gt: new Date() },
+    status: activeRequestStatusFilter,
+    dueDate: futureDueDateFilter,
   };
 
   const requests = await RequestPost.find(requestQuery)
@@ -116,14 +118,14 @@ export const getTailorRequestMatches = async ({ telegramUserId, page = 0 }) => {
 
   logger.info(
     {
-      event: 'tailor_request_matches_loaded',
-      telegramUserId,
+      event: 'tailor_request_visibility_executed',
+      userId: user._id,
       tailorProfileId: tailorProfile._id,
-      city: tailorProfile.location?.city ?? '',
+      candidateCount: requests.length,
       matchCount: matches.length,
       page,
     },
-    'Loaded tailor-facing request matches',
+    'Tailor request visibility executed',
   );
 
   const start = page * REQUEST_BATCH_SIZE;

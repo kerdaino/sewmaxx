@@ -6,13 +6,14 @@ export const handleBotError = async (error, ctx) => {
     {
       error: serializeErrorForLog(error),
       updateType: ctx?.updateType,
+      chatType: ctx?.chat?.type,
     },
     'Telegram bot action failed',
   );
 
   if (ctx?.reply) {
     try {
-      await ctx.reply('Something went wrong. Please try again later.');
+      await ctx.reply('Something went wrong on our side. Please try again shortly.');
     } catch (replyError) {
       logger.error(
         {

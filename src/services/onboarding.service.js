@@ -4,6 +4,7 @@ import { ClientProfile } from '../models/client-profile.model.js';
 import { TailorProfile } from '../models/tailor-profile.model.js';
 import { User } from '../models/user.model.js';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 import { ApiError } from '../utils/api-error.js';
 import { trackReferral } from './referral.service.js';
 import { generateReferralCode } from '../utils/referral-code.js';
@@ -103,11 +104,32 @@ export const onboardAffiliate = async (payload) => {
     },
   );
 
+  logger.info(
+    {
+      event: 'affiliate_onboarding_completed',
+      userId: user._id,
+      affiliateProfileId: affiliate._id,
+      hasPhoneNumber: Boolean(payload.phoneNumber),
+    },
+    'Affiliate onboarding completed',
+  );
+
   return affiliate;
 };
 
 export const onboardClient = async (payload) => {
-  let referredByAffiliateProfileId = null;
+  const user = await upsertUser(payload, 'client');
+  const clientUpdate = {
+    fullName: payload.fullName,
+    phoneNumber: payload.phoneNumber ?? '',
+    location: {
+      city: payload.city,
+      state: payload.state ?? '',
+      country: payload.country,
+      area: payload.area ?? '',
+    },
+    onboardingCompletedAt: new Date(),
+  };
 
   if (payload.referralCode) {
     const referral = await trackReferral({
@@ -117,11 +139,14 @@ export const onboardClient = async (payload) => {
       source: 'api',
     });
 
-    referredByAffiliateProfileId = referral.affiliateId;
+    clientUpdate.referredByAffiliateProfileId = referral.affiliateId;
   }
 
-  const user = await upsertUser(payload, 'client');
-  const completedAt = new Date();
+  if (Object.hasOwn(payload, 'stylePreferences')) {
+    clientUpdate.stylePreferences = payload.stylePreferences;
+  }
+
+  const completedAt = clientUpdate.onboardingCompletedAt;
 
   const client = await ClientProfile.findOneAndUpdate(
     { userId: user._id },
@@ -129,19 +154,7 @@ export const onboardClient = async (payload) => {
       $setOnInsert: {
         userId: user._id,
       },
-      $set: {
-        fullName: payload.fullName,
-        phoneNumber: payload.phoneNumber ?? '',
-        location: {
-          city: payload.city,
-          state: payload.state ?? '',
-          country: payload.country,
-          area: payload.area ?? '',
-        },
-        stylePreferences: payload.stylePreferences ?? [],
-        referredByAffiliateProfileId,
-        onboardingCompletedAt: completedAt,
-      },
+      $set: clientUpdate,
     },
     buildUpsertOptions(),
   ).lean();
@@ -159,6 +172,17 @@ export const onboardClient = async (payload) => {
     },
   );
 
+  logger.info(
+    {
+      event: 'client_onboarding_completed',
+      userId: user._id,
+      clientProfileId: client._id,
+      hasReferralCode: Boolean(payload.referralCode),
+      stylePreferenceCount: clientUpdate.stylePreferences?.length ?? 0,
+    },
+    'Client onboarding completed',
+  );
+
   return client;
 };
 
@@ -166,6 +190,8 @@ export const onboardTailor = async (payload) => {
   if (!Array.isArray(payload.specialties) || payload.specialties.length === 0) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'At least one specialty is required');
   }
+
+  const user = await upsertUser(payload, 'tailor');
 
   if (payload.referralCode) {
     await trackReferral({
@@ -175,8 +201,6 @@ export const onboardTailor = async (payload) => {
       source: 'api',
     });
   }
-
-  const user = await upsertUser(payload, 'tailor');
   const completedAt = new Date();
 
   const tailor = await TailorProfile.findOneAndUpdate(
@@ -184,6 +208,7 @@ export const onboardTailor = async (payload) => {
     {
       $setOnInsert: {
         userId: user._id,
+        status: env.TAILOR_DEFAULT_STATUS,
       },
       $set: {
         fullName: payload.fullName,
@@ -204,7 +229,6 @@ export const onboardTailor = async (payload) => {
           max: payload.budgetMax ?? null,
           currency: payload.currency ?? 'NGN',
         },
-        status: env.TAILOR_DEFAULT_STATUS,
         onboardingCompletedAt: completedAt,
       },
     },
@@ -222,6 +246,19 @@ export const onboardTailor = async (payload) => {
         roles: 'tailor',
       },
     },
+  );
+
+  logger.info(
+    {
+      event: 'tailor_onboarding_completed',
+      userId: user._id,
+      tailorProfileId: tailor._id,
+      specialtyCount: payload.specialties.length,
+      hasBudgetRange: payload.budgetMin !== null && payload.budgetMax !== null,
+      status: tailor.status,
+      verificationStatus: tailor.verificationStatus,
+    },
+    'Tailor onboarding completed',
   );
 
   return tailor;

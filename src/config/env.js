@@ -3,6 +3,15 @@ import Joi from 'joi';
 
 dotenv.config();
 
+const raiseConfigError = (message, details = []) => {
+  const formattedDetails = details.length > 0 ? ` Issues: ${details.join('; ')}` : '';
+  process.stderr.write(`[startup] Configuration error: ${message}${formattedDetails}\n`);
+
+  const error = new Error(`${message}${formattedDetails}`);
+  error.code = 'ENV_VALIDATION_ERROR';
+  throw error;
+};
+
 const envSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
   PORT: Joi.number().port().default(3000),
@@ -35,6 +44,7 @@ const envSchema = Joi.object({
   TAILOR_DEFAULT_STATUS: Joi.string().valid('pending_review', 'active').default('pending_review'),
   ADMIN_DEV_TOKEN: Joi.string().min(24).allow('').optional(),
   ADMIN_ALLOWED_IPS: Joi.string().allow('').default(''),
+  TELEGRAM_ADMIN_IDS: Joi.string().allow('').default(''),
 }).unknown();
 
 const { error, value } = envSchema.validate(process.env, {
@@ -43,27 +53,30 @@ const { error, value } = envSchema.validate(process.env, {
 });
 
 if (error) {
-  throw new Error(`Environment validation failed: ${error.message}`);
+  raiseConfigError(
+    'Environment validation failed.',
+    error.details?.map((detail) => detail.message) ?? [error.message],
+  );
 }
 
 if (value.NODE_ENV === 'production' && value.BOT_MODE !== 'webhook') {
-  throw new Error('Production requires BOT_MODE=webhook for safer Telegram deployment');
+  raiseConfigError('Production requires BOT_MODE=webhook for safer Telegram deployment.');
 }
 
 if (value.BOT_MODE === 'webhook' && !value.TELEGRAM_WEBHOOK_URL) {
-  throw new Error('TELEGRAM_WEBHOOK_URL is required when BOT_MODE=webhook');
+  raiseConfigError('TELEGRAM_WEBHOOK_URL is required when BOT_MODE=webhook.');
 }
 
 if (value.NODE_ENV === 'production' && !value.APP_BASE_URL.startsWith('https://')) {
-  throw new Error('APP_BASE_URL must use HTTPS in production');
+  raiseConfigError('APP_BASE_URL must use HTTPS in production.');
 }
 
 if (value.NODE_ENV === 'production' && value.TELEGRAM_WEBHOOK_URL && !value.TELEGRAM_WEBHOOK_URL.startsWith('https://')) {
-  throw new Error('TELEGRAM_WEBHOOK_URL must use HTTPS in production');
+  raiseConfigError('TELEGRAM_WEBHOOK_URL must use HTTPS in production.');
 }
 
 if (value.NODE_ENV !== 'production' && !value.ADMIN_DEV_TOKEN) {
-  throw new Error('ADMIN_DEV_TOKEN is required for development admin endpoints');
+  raiseConfigError('ADMIN_DEV_TOKEN is required for development admin endpoints.');
 }
 
 export const env = Object.freeze({

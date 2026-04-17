@@ -9,7 +9,9 @@ import {
   validateClientCity,
   validateClientCountry,
   validateClientFullName,
+  validateClientPhoneNumber,
 } from '../validators/client-onboarding.validator.js';
+import { buildNextStepsMessage } from '../services/role-guidance.service.js';
 
 const resetClientDraft = (ctx) => {
   ctx.session.onboardingFlow = 'client';
@@ -66,6 +68,24 @@ export const handleClientFullNameInput = async (ctx) => {
   ctx.session.onboardingDraft = {
     ...(ctx.session.onboardingDraft ?? {}),
     fullName: result.value,
+  };
+  ctx.session.onboardingStep = 'client_phone_number';
+
+  await ctx.reply('What phone number should we save for manual coordination?');
+  return true;
+};
+
+export const handleClientPhoneNumberInput = async (ctx) => {
+  const result = validateClientPhoneNumber(ctx.state.sanitizedText ?? '');
+
+  if (!result.isValid) {
+    await ctx.reply(result.message);
+    return true;
+  }
+
+  ctx.session.onboardingDraft = {
+    ...(ctx.session.onboardingDraft ?? {}),
+    phoneNumber: result.value,
   };
   ctx.session.onboardingStep = 'client_country';
 
@@ -129,7 +149,7 @@ export const handleClientAreaInput = async (ctx) => {
 const finalizeClientOnboarding = async (ctx) => {
   const draft = ctx.session.onboardingDraft ?? {};
 
-  if (!draft.fullName || !draft.country || !draft.city || !draft.area) {
+  if (!draft.fullName || !draft.phoneNumber || !draft.country || !draft.city || !draft.area) {
     await startClientOnboarding(ctx);
     return;
   }
@@ -138,6 +158,7 @@ const finalizeClientOnboarding = async (ctx) => {
     telegramUserId: String(ctx.from?.id ?? ''),
     telegramUsername: ctx.from?.username ?? '',
     fullName: draft.fullName,
+    phoneNumber: draft.phoneNumber,
     country: draft.country,
     city: draft.city,
     area: draft.area,
@@ -155,4 +176,5 @@ const finalizeClientOnboarding = async (ctx) => {
     buildClientSummary({ client, usedReferral }),
     buildClientOnboardingControls(),
   );
+  await ctx.reply(buildNextStepsMessage('client'));
 };

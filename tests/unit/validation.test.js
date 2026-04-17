@@ -12,7 +12,11 @@ import {
   validateRequestLocation,
 } from '../../src/bot/validators/request-post.validator.js';
 import { validateSearchBudget } from '../../src/bot/validators/search.validator.js';
-import { validateTailorBudgetRange } from '../../src/bot/validators/tailor-onboarding.validator.js';
+import {
+  validateTailorBudgetRange,
+  validateTailorPhoneNumber,
+} from '../../src/bot/validators/tailor-onboarding.validator.js';
+import { validateClientPhoneNumber as validateBotClientPhoneNumber } from '../../src/bot/validators/client-onboarding.validator.js';
 
 describe('validation logic', () => {
   it('sanitizes and validates affiliate onboarding payloads', () => {
@@ -43,11 +47,13 @@ describe('validation logic', () => {
       country: 'Nigeria',
       city: 'Lagos',
       area: 'Lekki',
+      referralCode: 'aff-1234',
     });
 
     expect(payload.country).toBe('Nigeria');
     expect(payload.city).toBe('Lagos');
     expect(payload.area).toBe('Lekki');
+    expect(payload.referralCode).toBe('AFF-1234');
   });
 
   it('accepts tailor onboarding API payloads with required profile fields', () => {
@@ -81,6 +87,14 @@ describe('validation logic', () => {
     expect(ranged.value).toEqual({ min: 10000, max: 50000, currency: 'NGN' });
     expect(skipped.isValid).toBe(true);
     expect(skipped.value).toEqual({ min: null, max: null, currency: 'NGN' });
+  });
+
+  it('accepts practical client and tailor phone numbers', () => {
+    const clientResult = validateBotClientPhoneNumber('+234 801 234 5678');
+    const tailorResult = validateTailorPhoneNumber('0801-234-5678');
+
+    expect(clientResult.isValid).toBe(true);
+    expect(tailorResult.isValid).toBe(true);
   });
 
   it('accepts valid search budget ranges', () => {

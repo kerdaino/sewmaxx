@@ -8,12 +8,15 @@ import {
   createSearchSession,
   ensureClientCanSearch,
   getMatchBatch,
+  SEARCH_BATCH_SIZE,
 } from '../services/search-flow.service.js';
+import { startRequestPosting } from './request-post.handler.js';
 import {
   validateSearchBudget,
   validateSearchLocation,
   validateSearchStyle,
 } from '../validators/search.validator.js';
+import { ensureBotRoleAccess } from '../services/role-access.service.js';
 import { logger } from '../../config/logger.js';
 import { serializeErrorForLog } from '../../utils/error-log.js';
 
@@ -29,6 +32,10 @@ const resetSearchDraft = (ctx) => {
 };
 
 export const startClientSearch = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return;
+  }
+
   const telegramUserId = String(ctx.from?.id ?? '');
   const eligibility = await ensureClientCanSearch(telegramUserId);
 
@@ -45,6 +52,10 @@ export const startClientSearch = async (ctx) => {
 };
 
 export const restartClientSearch = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client', { sendReplyMessage: !ctx.callbackQuery }))) {
+    return;
+  }
+
   resetSearchDraft(ctx);
 
   if (ctx.answerCbQuery) {
@@ -55,6 +66,10 @@ export const restartClientSearch = async (ctx) => {
 };
 
 export const handleSearchStyleInput = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return true;
+  }
+
   const result = validateSearchStyle(ctx.state.sanitizedText ?? '');
 
   if (!result.isValid) {
@@ -73,6 +88,10 @@ export const handleSearchStyleInput = async (ctx) => {
 };
 
 export const handleSearchLocationInput = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return true;
+  }
+
   const result = validateSearchLocation(ctx.state.sanitizedText ?? '');
 
   if (!result.isValid) {
@@ -91,6 +110,10 @@ export const handleSearchLocationInput = async (ctx) => {
 };
 
 export const handleSearchBudgetInput = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return true;
+  }
+
   const result = validateSearchBudget(ctx.state.sanitizedText ?? '');
 
   if (!result.isValid) {
@@ -103,23 +126,17 @@ export const handleSearchBudgetInput = async (ctx) => {
     budgetRange: result.value,
   };
 
-  logger.info(
-    {
-      event: 'client_search_budget_captured',
-      updateType: ctx.updateType,
-      min: result.value.min,
-      max: result.value.max,
-    },
-    'Captured client search budget range',
-  );
-
   await finalizeSearch(ctx);
   return true;
 };
 
 export const handleNextSearchPage = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client', { sendReplyMessage: false }))) {
+    return;
+  }
+
   if (!ctx.session.searchResults?.matches?.length) {
-    await ctx.answerCbQuery('No more results');
+    await ctx.answerCbQuery('Start /search first');
     return;
   }
 
@@ -136,8 +153,15 @@ export const handleNextSearchPage = async (ctx) => {
 };
 
 export const handleSearchNextSteps = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client', { sendReplyMessage: false }))) {
+    return;
+  }
+
   await ctx.answerCbQuery();
-  await ctx.reply('No tailor matched yet. You can try another search now, and request posting can be added next.');
+  await ctx.reply(
+    'You can post a request now if you want Sewmaxx coordinators to handle manual matching and follow-up for this need.',
+  );
+  await startRequestPosting(ctx);
 };
 
 const finalizeSearch = async (ctx) => {
@@ -181,7 +205,7 @@ const finalizeSearch = async (ctx) => {
 
   if (matches.length === 0) {
     await ctx.reply(
-      'No matching tailors were found for this search yet. You can try a broader style, another city, or post a request next.',
+      'No approved tailors matched this search yet. You can try another search or post a request so Sewmaxx coordinators can handle the matching manually.',
       buildSearchEmptyResultsKeyboard(),
     );
     return;
@@ -193,11 +217,13 @@ const finalizeSearch = async (ctx) => {
 
 const sendSearchBatch = async (ctx, batch, totalMatches) => {
   const summary = batch.items
-    .map((tailor, index) => buildTailorResultSummary(tailor, batch.page * 3 + index + 1))
+    .map((tailor, index) =>
+      buildTailorResultSummary(tailor, batch.page * SEARCH_BATCH_SIZE + index + 1),
+    )
     .join('\n\n');
 
   await ctx.reply(
-    `Found ${totalMatches} matching tailors.\n\n${summary}`,
+    `Found ${totalMatches} matching tailors.\n\n${summary}\n\nYou can keep browsing results or post a request if you want Sewmaxx coordinators to take over the next step.`,
     buildSearchResultsKeyboard({ hasMore: batch.hasMore }),
   );
 };

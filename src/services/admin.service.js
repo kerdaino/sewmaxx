@@ -1,14 +1,18 @@
+import { StatusCodes } from 'http-status-codes';
 import { AffiliateProfile } from '../models/affiliate-profile.model.js';
 import { RequestPost } from '../models/request-post.model.js';
 import { SearchSession } from '../models/search-session.model.js';
 import { TailorProfile } from '../models/tailor-profile.model.js';
 import { logger } from '../config/logger.js';
+import { ApiError } from '../utils/api-error.js';
+import { assertValidObjectId } from '../utils/object-id.js';
 
 export const listRecentAffiliates = async ({ limit, requestId }) => {
   const affiliates = await AffiliateProfile.find({})
-    .select('displayName fullName affiliateCode status verificationStatus onboardingCompletedAt createdAt')
+    .select('userId displayName fullName affiliateCode status verificationStatus onboardingCompletedAt createdAt +phoneNumber')
     .sort({ createdAt: -1 })
     .limit(limit)
+    .populate({ path: 'userId', select: 'telegramUsername' })
     .lean();
 
   logger.info(
@@ -21,9 +25,11 @@ export const listRecentAffiliates = async ({ limit, requestId }) => {
 
 export const listRecentClientRequests = async ({ limit, requestId }) => {
   const requests = await RequestPost.find({})
-    .select('outfitType style location budgetRange dueDate status coordinatorStatus createdAt')
+    .select('clientProfileId userId outfitType style location budgetRange dueDate status coordinatorStatus createdAt')
     .sort({ createdAt: -1 })
     .limit(limit)
+    .populate({ path: 'userId', select: 'telegramUsername' })
+    .populate({ path: 'clientProfileId', select: 'fullName +phoneNumber' })
     .lean();
 
   logger.info(
@@ -36,9 +42,10 @@ export const listRecentClientRequests = async ({ limit, requestId }) => {
 
 export const listRecentTailorSignups = async ({ limit, requestId }) => {
   const tailors = await TailorProfile.find({})
-    .select('publicName businessName location specialties status verificationStatus onboardingCompletedAt createdAt')
+    .select('userId publicName businessName location specialties status verificationStatus onboardingCompletedAt createdAt +phoneNumber')
     .sort({ createdAt: -1 })
     .limit(limit)
+    .populate({ path: 'userId', select: 'telegramUsername' })
     .lean();
 
   logger.info(
@@ -62,4 +69,184 @@ export const reviewSearchSessions = async ({ limit, requestId }) => {
   );
 
   return sessions;
+};
+
+export const updateTailorApprovalStatus = async ({
+  tailorId,
+  verificationStatus,
+  adminTelegramUserId,
+  auditRequestId,
+}) => {
+  const normalizedTailorId = assertValidObjectId(tailorId, 'Tailor id');
+
+  if (!['approved', 'rejected'].includes(verificationStatus)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid tailor verification status');
+  }
+
+  const tailor = await TailorProfile.findByIdAndUpdate(
+    normalizedTailorId,
+    {
+      $set: {
+        verificationStatus,
+        status: verificationStatus === 'approved' ? 'active' : 'inactive',
+        'internalAudit.lastReviewedAt': new Date(),
+      },
+      $addToSet: {
+        'internalAudit.riskFlags': verificationStatus === 'rejected' ? 'rejected_by_admin' : 'approved_by_admin',
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  )
+    .select('publicName businessName location specialties status verificationStatus onboardingCompletedAt createdAt')
+    .lean();
+
+  if (!tailor) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Tailor not found');
+  }
+
+  logger.info(
+    {
+      requestId: auditRequestId,
+      event: 'admin_tailor_approval_updated',
+      tailorId: normalizedTailorId,
+      verificationStatus,
+      adminTelegramUserId,
+    },
+    'Admin tailor approval updated',
+  );
+
+  return tailor;
+};
+
+export const updateAffiliateApprovalStatus = async ({
+  affiliateId,
+  verificationStatus,
+  adminTelegramUserId,
+  auditRequestId,
+}) => {
+  const normalizedAffiliateId = assertValidObjectId(affiliateId, 'Affiliate id');
+
+  if (!['approved', 'rejected'].includes(verificationStatus)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid affiliate verification status');
+  }
+
+  const affiliate = await AffiliateProfile.findByIdAndUpdate(
+    normalizedAffiliateId,
+    {
+      $set: {
+        verificationStatus,
+        status: verificationStatus === 'approved' ? 'active' : 'inactive',
+        'internalAudit.lastReviewedAt': new Date(),
+      },
+      $addToSet: {
+        'internalAudit.riskFlags':
+          verificationStatus === 'rejected' ? 'rejected_by_admin' : 'approved_by_admin',
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  )
+    .select('displayName fullName affiliateCode status verificationStatus onboardingCompletedAt createdAt')
+    .lean();
+
+  if (!affiliate) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Affiliate not found');
+  }
+
+  logger.info(
+    {
+      requestId: auditRequestId,
+      event: 'admin_affiliate_approval_updated',
+      affiliateId: normalizedAffiliateId,
+      verificationStatus,
+      adminTelegramUserId,
+    },
+    'Admin affiliate approval updated',
+  );
+
+  return affiliate;
+};
+
+const coordinatorStatusByRequestStatus = Object.freeze({
+  pending: 'unreviewed',
+  reviewing: 'reviewing',
+  assigned: 'contacted',
+  completed: 'resolved',
+});
+
+const allowedRequestStatusTransitions = Object.freeze({
+  pending: ['reviewing', 'assigned', 'completed'],
+  reviewing: ['assigned', 'completed'],
+  assigned: ['reviewing', 'completed'],
+  completed: [],
+});
+
+export const updateRequestManagementStatus = async ({
+  requestPostId,
+  status,
+  adminTelegramUserId,
+  auditRequestId,
+}) => {
+  const normalizedRequestPostId = assertValidObjectId(requestPostId, 'Request id');
+
+  if (!Object.hasOwn(coordinatorStatusByRequestStatus, status)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid request status');
+  }
+
+  const existingRequest = await RequestPost.findById(normalizedRequestPostId)
+    .select('status')
+    .lean();
+
+  if (!existingRequest) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Request not found');
+  }
+
+  if (existingRequest.status === status) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Request already has that status');
+  }
+
+  if (!allowedRequestStatusTransitions[existingRequest.status]?.includes(status)) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Invalid request status transition from ${existingRequest.status} to ${status}`,
+    );
+  }
+
+  const request = await RequestPost.findByIdAndUpdate(
+    normalizedRequestPostId,
+    {
+      $set: {
+        status,
+        coordinatorStatus: coordinatorStatusByRequestStatus[status],
+        assignedCoordinatorId:
+          status === 'reviewing' || status === 'assigned' ? adminTelegramUserId : '',
+        lastCoordinatorActionAt: new Date(),
+        'internalAudit.lastReviewedAt': new Date(),
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  )
+    .select('outfitType style location budgetRange dueDate status coordinatorStatus createdAt')
+    .lean();
+
+  logger.info(
+    {
+      requestId: auditRequestId,
+      event: 'admin_request_status_updated',
+      requestPostId: normalizedRequestPostId,
+      status,
+      adminTelegramUserId,
+    },
+    'Admin request status updated',
+  );
+
+  return request;
 };
