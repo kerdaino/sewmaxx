@@ -16,6 +16,7 @@ export const BOT_SESSION_DEFAULTS = Object.freeze({
   requestFlow: null,
   requestStep: null,
   requestDraft: null,
+  tailorRequestPage: 0,
 });
 
 export const KNOWN_COMMANDS = Object.freeze([
@@ -27,4 +28,5 @@ export const KNOWN_COMMANDS = Object.freeze([
   '/affiliate',
   '/search',
   '/requests',
+  '/tailor_requests',
 ]);

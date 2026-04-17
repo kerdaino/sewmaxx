@@ -10,6 +10,11 @@ import {
   restartRequestPosting,
   startRequestPosting,
 } from '../handlers/request-post.handler.js';
+import {
+  handleNextTailorRequestPage as handleTailorRequestsNextPage,
+  restartTailorRequestView as restartTailorRequests,
+  startTailorRequestView as startTailorRequests,
+} from '../handlers/tailor-request.handler.js';
 
 const requestsRouter = new Composer();
 
@@ -18,10 +23,17 @@ requestsRouter.command('requests', async (ctx) => {
   await startRequestPosting(ctx);
 });
 
+requestsRouter.command('tailor_requests', async (ctx) => {
+  ctx.session.lastCommand = '/tailor_requests';
+  await startTailorRequests(ctx);
+});
+
 requestsRouter.action(/^request:outfit:(agbada|dress|senator|shirt|trouser|wedding|uniform|other)$/, handleRequestOutfitSelection);
 requestsRouter.action(/^request:edit:(outfit|budget|location|due_date)$/, handleRequestEdit);
 requestsRouter.action('request:publish', handleRequestPublish);
 requestsRouter.action('request:restart', restartRequestPosting);
+requestsRouter.action('tailor:requests:page:next', handleTailorRequestsNextPage);
+requestsRouter.action('tailor:requests:restart', restartTailorRequests);
 
 requestsRouter.on('text', async (ctx, next) => {
   if (ctx.session.requestFlow !== 'client_request') {

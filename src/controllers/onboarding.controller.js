@@ -15,7 +15,7 @@ export const createAffiliateOnboarding = async (req, res) => {
     success: true,
     data: {
       id: affiliate._id,
-      referralCode: affiliate.referralCode,
+      affiliateCode: affiliate.affiliateCode,
       status: affiliate.status,
     },
   });
@@ -29,7 +29,7 @@ export const createClientOnboarding = async (req, res) => {
     success: true,
     data: {
       id: client._id,
-      city: client.city,
+      city: client.location?.city ?? '',
     },
   });
 };
@@ -42,7 +42,7 @@ export const createTailorOnboarding = async (req, res) => {
     success: true,
     data: {
       id: tailor._id,
-      city: tailor.city,
+      city: tailor.location?.city ?? '',
       specialties: tailor.specialties,
     },
   });

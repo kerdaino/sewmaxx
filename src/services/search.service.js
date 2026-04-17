@@ -9,6 +9,8 @@ export const getBudgetCompatibilityScore = (tailorBudgetRange, requestedBudgetRa
   if (
     tailorBudgetRange?.min === null ||
     tailorBudgetRange?.max === null ||
+    requestedBudgetRange?.min === undefined ||
+    requestedBudgetRange?.max === undefined ||
     requestedBudgetRange?.min === null ||
     requestedBudgetRange?.max === null
   ) {
