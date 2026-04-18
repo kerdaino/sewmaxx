@@ -111,6 +111,7 @@ describe('admin service request transitions', () => {
             _id: 'tailor-1',
             fullName: 'Ada Tailor',
             phoneNumber: '08012345678',
+            budgetRange: { min: 15000, max: 85000, currency: 'NGN' },
             portfolio: [{ telegramFileId: 'portfolio-file' }],
             kyc: { idDocument: { telegramFileId: 'id-file' }, selfieWithId: { telegramFileId: 'selfie-file' } },
           }),
@@ -126,6 +127,7 @@ describe('admin service request transitions', () => {
     expect(result).toMatchObject({
       _id: 'tailor-1',
       phoneNumber: '08012345678',
+      budgetRange: { min: 15000, max: 85000, currency: 'NGN' },
     });
     expect(result.portfolio).toHaveLength(1);
     expect(result.kyc.idDocument.telegramFileId).toBe('id-file');

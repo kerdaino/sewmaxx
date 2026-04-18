@@ -37,7 +37,7 @@ const buildTailorRequirementsMessage = () =>
   [
     'Tailor onboarding requirements',
     '',
-    'Before joining Sewmaxx, please carefully review and fully understand the tailor terms and conditions.',
+    'Please review the Sewmaxx tailor onboarding requirements carefully before you continue.',
     '',
     'To join Sewmaxx, you must:',
     '- Be at least 18 years old',
@@ -47,24 +47,24 @@ const buildTailorRequirementsMessage = () =>
     '- Be able to deliver consistent, professional results',
     '- Be ready to submit your price range, portfolio, ID, workplace image, and selfie while holding the same ID for admin review',
     '',
-    'Select Accept to review the Terms & Conditions before proceeding, or Cancel to return to the start.',
+    'Select Accept to review the Terms & Conditions, or Cancel to stop here.',
   ].join('\n');
 
 const buildTailorTermsMessage = () =>
   [
     'Tailor terms review',
     '',
-    'Please review our Terms & Conditions before proceeding.',
+    'Please review the official Terms & Conditions before continuing.',
     env.TAILOR_TERMS_PDF_URL
-      ? 'Tap View Terms to open the official Sewmaxx tailor onboarding PDF, then continue after viewing.'
-      : 'Set TAILOR_TERMS_PDF_URL to attach the official Sewmaxx tailor onboarding PDF, then continue after viewing.',
+      ? 'Tap View Terms to open the tailor onboarding PDF, then tap Continue After Viewing when you are done.'
+      : 'The tailor onboarding PDF is not configured yet. Review the terms with an admin, then continue.',
   ].join('\n');
 
 const buildTailorAgreementMessage = () =>
   [
     'Tailor agreement confirmation',
     '',
-    'By continuing, you agree to Sewmaxx terms, pricing and commission structure.',
+    'By continuing, you confirm that you understand and accept Sewmaxx terms, pricing, and commission structure.',
     '',
     'You also confirm that you have reviewed the official terms and agree to Sewmaxx policies before onboarding continues.',
   ].join('\n');
@@ -222,7 +222,7 @@ export const handleTailorFullNameInput = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_phone_number';
 
   await ctx.reply(
-    'What phone number should we save for manual coordination?\nExample: +234 801 234 5678',
+    'What phone number should we save for Sewmaxx coordination?\nExample: +234 801 234 5678',
   );
   return true;
 };
@@ -260,7 +260,7 @@ export const handleTailorBusinessNameInput = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_public_name';
 
   await ctx.reply(
-    'What public name or display username should clients see?\nExample: Ada Bridal Studio',
+    'What public name should clients see?\nExample: Ada Bridal Studio\nYou can also tap Use Business Name if you want both to match.',
     buildTailorPublicNameKeyboard(),
   );
   return true;
@@ -358,7 +358,7 @@ export const handleTailorWorkAddressInput = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_specialties';
 
   await ctx.reply(
-    'List your sewing categories or style specialties, separated by commas.\nExample: Bridal, Asoebi, Ready-to-wear',
+    'List your sewing specialties, separated by commas.\nExample: Bridal, Asoebi, Ready-to-wear',
   );
   return true;
 };
@@ -378,7 +378,7 @@ export const handleTailorSpecialtiesInput = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_budget_range';
 
   await ctx.reply(
-    'Enter your mandatory service price range like 10000-50000.\nExample: 15000-85000',
+    'Enter your service price range in this format: 10000-50000\nExample: 15000-85000',
   );
   return true;
 };
@@ -398,7 +398,7 @@ export const handleTailorBudgetRangeInput = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_portfolio_upload';
 
   await ctx.reply(
-    'Upload one portfolio image from your previous work.\nExample: a clear photo of a finished bridal gown, senator wear, or ready-to-wear piece.',
+    'Upload one clear portfolio image from your previous work.\nExample: a finished bridal gown, senator wear, kaftan, or ready-to-wear piece.',
   );
   return true;
 };
@@ -407,7 +407,7 @@ export const handleTailorPortfolioUpload = async (ctx) => {
   const asset = extractTelegramAssetFromMessage(ctx);
 
   if (!asset) {
-    await ctx.reply('Please send an image file for your portfolio upload.');
+    await ctx.reply('Please send your portfolio as a clear photo or image document.');
     return true;
   }
 
@@ -425,7 +425,9 @@ export const handleTailorPortfolioUpload = async (ctx) => {
   };
   ctx.session.onboardingStep = 'tailor_id_upload';
 
-  await ctx.reply('Portfolio image saved.\n\nNow upload your ID document as a photo or image document.');
+  await ctx.reply(
+    'Portfolio saved.\n\nNow upload your ID document as a clear photo or image document.\nExample: national ID, voter card, driver’s license, or passport image.',
+  );
   return true;
 };
 
@@ -433,7 +435,7 @@ export const handleTailorIdUpload = async (ctx) => {
   const asset = extractTelegramAssetFromMessage(ctx);
 
   if (!asset) {
-    await ctx.reply('Please send your ID as a photo or image document.');
+    await ctx.reply('Please send your ID as a clear photo or image document.');
     return true;
   }
 
@@ -447,7 +449,7 @@ export const handleTailorIdUpload = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_selfie_with_id_upload';
 
   await ctx.reply(
-    'ID saved.\n\nUpload a selfie while holding the same ID.\nExample: a clear selfie showing your face and the same ID used above.',
+    'ID saved.\n\nNow upload a selfie while holding the same ID.\nExample: a clear selfie showing your face and the same ID used above.',
   );
   return true;
 };
@@ -456,7 +458,9 @@ export const handleTailorSelfieWithIdUpload = async (ctx) => {
   const asset = extractTelegramAssetFromMessage(ctx);
 
   if (!asset) {
-    await ctx.reply('Please send a selfie while holding the same uploaded ID as a photo or image document.');
+    await ctx.reply(
+      'Please send a clear selfie while holding the same ID you uploaded, as a photo or image document.',
+    );
     return true;
   }
 
@@ -470,7 +474,7 @@ export const handleTailorSelfieWithIdUpload = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_workplace_image_upload';
 
   await ctx.reply(
-    'Selfie saved.\n\nUpload a clear workplace image for KYC.\nExample: your sewing space, tailoring shop front, or in-studio work area.',
+    'Selfie saved.\n\nNow upload a clear workplace image for KYC.\nExample: your sewing space, tailoring shop front, or in-studio work area.',
   );
   return true;
 };
@@ -479,7 +483,7 @@ export const handleTailorWorkplaceImageUpload = async (ctx) => {
   const asset = extractTelegramAssetFromMessage(ctx);
 
   if (!asset) {
-    await ctx.reply('Please send a workplace image as a photo or image document.');
+    await ctx.reply('Please send your workplace image as a clear photo or image document.');
     return true;
   }
 

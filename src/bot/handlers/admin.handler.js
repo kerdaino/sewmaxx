@@ -45,6 +45,14 @@ const ensureValidCommandObjectId = (value, label) => {
 
 const buildTailorFileReference = (asset) => asset?.telegramFileId || asset?.assetKey || '';
 const buildAffiliateFileReference = (asset) => asset?.telegramFileId || '';
+const buildBudgetRangeLabel = (budgetRange) => {
+  if (budgetRange?.min === null || budgetRange?.min === undefined || budgetRange?.max === null || budgetRange?.max === undefined) {
+    return 'Not set';
+  }
+
+  return `${budgetRange.currency || 'NGN'} ${budgetRange.min} - ${budgetRange.max}`;
+};
+const buildYesNoLabel = (value) => (value ? 'Yes' : 'No');
 
 const sendAdminTailorAsset = async (ctx, { asset, caption, fallbackLabel }) => {
   const fileReference = buildTailorFileReference(asset);
@@ -182,7 +190,7 @@ export const handleAdminTailorsCommand = async (ctx) => {
     const summary = tailors
       .map(
         (tailor, index) =>
-          `${index + 1}. ${tailor.publicName}\nID: ${tailor._id}\nCity: ${tailor.location?.city ?? 'N/A'}\nPhone: ${tailor.phoneNumber || 'Not set'}\nTelegram: ${tailor.userId?.telegramUsername ? `@${tailor.userId.telegramUsername}` : 'Not set'}\nVerification: ${tailor.verificationStatus}\nStatus: ${tailor.status}\nPortfolio uploads: ${tailor.portfolio?.length ?? 0}\nID submitted: ${tailor.kyc?.idDocument?.telegramFileId ? 'Yes' : 'No'}\nSelfie with ID: ${tailor.kyc?.selfieWithId?.telegramFileId ? 'Yes' : 'No'}\nWorkplace image: ${tailor.kyc?.workplaceImage?.telegramFileId ? 'Yes' : 'No'}`,
+          `${index + 1}. ${tailor.publicName}\nID: ${tailor._id}\nCity: ${tailor.location?.city ?? 'N/A'}\nPhone: ${tailor.phoneNumber || 'Not set'}\nTelegram: ${tailor.userId?.telegramUsername ? `@${tailor.userId.telegramUsername}` : 'Not set'}\nService range: ${buildBudgetRangeLabel(tailor.budgetRange)}\nVerification: ${tailor.verificationStatus}\nStatus: ${tailor.status}\nPortfolio uploads: ${tailor.portfolio?.length ?? 0}\nID uploaded: ${buildYesNoLabel(tailor.kyc?.idDocument?.telegramFileId)}\nSelfie with ID uploaded: ${buildYesNoLabel(tailor.kyc?.selfieWithId?.telegramFileId)}\nWorkplace image uploaded: ${buildYesNoLabel(tailor.kyc?.workplaceImage?.telegramFileId)}`,
       )
       .join('\n\n');
 
@@ -219,7 +227,7 @@ export const handleAdminAffiliatesCommand = async (ctx) => {
     const summary = affiliates
       .map(
         (affiliate, index) =>
-          `${index + 1}. ${affiliate.displayName}\nID: ${affiliate._id}\nAffiliate code: ${affiliate.affiliateCode}\nPhone: ${affiliate.phoneNumber || affiliate.kycDetails?.legalPhoneNumber || 'Not set'}\nTelegram: ${affiliate.userId?.telegramUsername ? `@${affiliate.userId.telegramUsername}` : 'Not set'}\nVerification: ${affiliate.verificationStatus}\nStatus: ${affiliate.status}\nCountry: ${affiliate.kycDetails?.country || affiliate.location?.country || 'Not set'}\nCity: ${affiliate.kycDetails?.city || affiliate.location?.city || 'Not set'}\nID submitted: ${affiliate.kycDetails?.idDocument?.telegramFileId ? 'Yes' : 'No'}\nSelfie with ID submitted: ${affiliate.kycDetails?.selfieWithId?.telegramFileId ? 'Yes' : 'No'}`,
+          `${index + 1}. ${affiliate.displayName}\nID: ${affiliate._id}\nAffiliate code: ${affiliate.affiliateCode}\nPhone: ${affiliate.phoneNumber || affiliate.kycDetails?.legalPhoneNumber || 'Not set'}\nTelegram: ${affiliate.userId?.telegramUsername ? `@${affiliate.userId.telegramUsername}` : 'Not set'}\nVerification: ${affiliate.verificationStatus}\nStatus: ${affiliate.status}\nCountry: ${affiliate.kycDetails?.country || affiliate.location?.country || 'Not set'}\nCity: ${affiliate.kycDetails?.city || affiliate.location?.city || 'Not set'}\nID uploaded: ${buildYesNoLabel(affiliate.kycDetails?.idDocument?.telegramFileId)}\nSelfie with ID uploaded: ${buildYesNoLabel(affiliate.kycDetails?.selfieWithId?.telegramFileId)}`,
       )
       .join('\n\n');
 
@@ -276,12 +284,17 @@ export const handleAdminTailorDetailCommand = async (ctx) => {
         `City: ${tailor.location?.city ?? 'Not set'}`,
         `Work address: ${tailor.workAddress || 'Not set'}`,
         `Specialties: ${tailor.specialties?.join(', ') || 'Not set'}`,
+        `Service range: ${buildBudgetRangeLabel(tailor.budgetRange)}`,
+        `Verification: ${tailor.verificationStatus}`,
+        `Status: ${tailor.status}`,
+        `Requirements acknowledged: ${tailor.onboardingAgreement?.requirementsAcknowledgedAt ? 'Yes' : 'No'}`,
         `Terms reviewed: ${tailor.onboardingAgreement?.termsReviewedAt ? 'Yes' : 'No'}`,
         `Policies accepted: ${tailor.onboardingAgreement?.policiesAcceptedAt ? 'Yes' : 'No'}`,
         `Pricing accepted: ${tailor.onboardingAgreement?.pricingAcceptedAt ? 'Yes' : 'No'}`,
-        `ID file status: ${tailor.kyc?.idDocument?.telegramFileId ? 'Available below' : 'Not submitted'}`,
-        `Selfie with ID status: ${tailor.kyc?.selfieWithId?.telegramFileId ? 'Available below' : 'Not submitted'}`,
-        `Workplace file status: ${tailor.kyc?.workplaceImage?.telegramFileId ? 'Available below' : 'Not submitted'}`,
+        `Terms PDF: ${tailor.onboardingAgreement?.termsPdfUrl || 'Not set'}`,
+        `ID file: ${tailor.kyc?.idDocument?.telegramFileId ? 'Available below' : 'Not submitted'}`,
+        `Selfie with ID: ${tailor.kyc?.selfieWithId?.telegramFileId ? 'Available below' : 'Not submitted'}`,
+        `Workplace image: ${tailor.kyc?.workplaceImage?.telegramFileId ? 'Available below' : 'Not submitted'}`,
         `Portfolio files:\n${portfolioLines || 'None'}`,
       ].join('\n'),
     );
@@ -332,8 +345,8 @@ export const handleAdminAffiliateDetailCommand = async (ctx) => {
         `City: ${affiliate.kycDetails?.city || affiliate.location?.city || 'Not set'}`,
         `Verification: ${affiliate.verificationStatus}`,
         `Status: ${affiliate.status}`,
-        `ID file status: ${affiliate.kycDetails?.idDocument?.telegramFileId ? 'Available below' : 'Not submitted'}`,
-        `Selfie with ID status: ${affiliate.kycDetails?.selfieWithId?.telegramFileId ? 'Available below' : 'Not submitted'}`,
+        `ID file: ${affiliate.kycDetails?.idDocument?.telegramFileId ? 'Available below' : 'Not submitted'}`,
+        `Selfie with ID: ${affiliate.kycDetails?.selfieWithId?.telegramFileId ? 'Available below' : 'Not submitted'}`,
       ].join('\n'),
     );
     await sendAdminAffiliateReviewAssets(ctx, affiliate);

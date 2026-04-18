@@ -100,7 +100,7 @@ export const handleAffiliateFullNameInput = async (ctx) => {
   ctx.session.onboardingStep = 'affiliate_display_name';
 
   await ctx.reply(
-    'What display name or brand name should people see?\nExample: Ada Style Connect\nYou can also use your full name.',
+    'What display name should people see?\nExample: Ada Style Connect\nYou can also tap Use Full Name if you want to keep it simple.',
     buildAffiliateDisplayNameKeyboard(),
   );
 
@@ -164,7 +164,7 @@ export const handleAffiliatePhoneNumberInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'affiliate_country';
 
-  await ctx.reply('Which country should we save for affiliate KYC?\nExample: Nigeria');
+  await ctx.reply('Which country should we save for your affiliate profile?\nExample: Nigeria');
   return true;
 };
 
@@ -182,7 +182,7 @@ export const handleAffiliateCountryInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'affiliate_city';
 
-  await ctx.reply('Which city should we save for affiliate KYC?\nExample: Lagos');
+  await ctx.reply('Which city should we save for your affiliate profile?\nExample: Lagos');
   return true;
 };
 
@@ -201,7 +201,7 @@ export const handleAffiliateCityInput = async (ctx) => {
   ctx.session.onboardingStep = 'affiliate_id_upload';
 
   await ctx.reply(
-    'Upload your affiliate ID as a photo or image document.\nExample: national ID card, voter card, driver’s license, or international passport image.',
+    'Upload your ID as a clear photo or image document.\nExample: national ID card, voter card, driver’s license, or passport image.',
     buildAffiliateKycKeyboard(),
   );
   return true;
@@ -211,7 +211,10 @@ export const handleAffiliateIdUpload = async (ctx) => {
   const asset = extractAffiliateAssetFromMessage(ctx);
 
   if (!asset) {
-    await ctx.reply('Please send your affiliate ID as a photo or image document.', buildAffiliateKycKeyboard());
+    await ctx.reply(
+      'Please send your ID as a clear photo or image document.',
+      buildAffiliateKycKeyboard(),
+    );
     return true;
   }
 
@@ -225,7 +228,7 @@ export const handleAffiliateIdUpload = async (ctx) => {
   ctx.session.onboardingStep = 'affiliate_selfie_with_id_upload';
 
   await ctx.reply(
-    'ID saved.\n\nNow upload a selfie while holding the same ID as a clear photo or image document.',
+    'ID saved.\n\nNow upload a clear selfie while holding the same ID.',
     buildAffiliateKycKeyboard(),
   );
   return true;

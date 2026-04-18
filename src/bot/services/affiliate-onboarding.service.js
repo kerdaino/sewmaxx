@@ -48,15 +48,17 @@ export const buildAffiliateSummary = ({ affiliate, referralLink }) => {
   const summaryLines = [
     'Affiliate onboarding complete.',
     '',
+    'Your affiliate profile has been created successfully.',
+    '',
     `Full name: ${affiliate.fullName}`,
     `Display name: ${affiliate.displayName}`,
     `Phone number: ${affiliate.phoneNumber || affiliate.kycDetails?.legalPhoneNumber || 'Not set'}`,
     `Country: ${affiliate.location?.country ?? affiliate.kycDetails?.country ?? 'Not set'}`,
     `City: ${affiliate.location?.city ?? affiliate.kycDetails?.city ?? 'Not set'}`,
-    `ID submitted: ${affiliate.kycDetails?.idDocument?.telegramFileId ? 'Yes' : 'No'}`,
-    `Selfie with ID submitted: ${affiliate.kycDetails?.selfieWithId?.telegramFileId ? 'Yes' : 'No'}`,
+    `ID uploaded: ${affiliate.kycDetails?.idDocument?.telegramFileId ? 'Yes' : 'No'}`,
+    `Selfie with ID uploaded: ${affiliate.kycDetails?.selfieWithId?.telegramFileId ? 'Yes' : 'No'}`,
     `Affiliate code: ${affiliate.affiliateCode}`,
-    `Status: ${affiliate.status}`,
+    `Profile status: ${affiliate.status}`,
   ];
 
   if (referralLink) {

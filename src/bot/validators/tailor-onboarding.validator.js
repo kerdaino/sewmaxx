@@ -106,21 +106,21 @@ export const validateTailorBudgetRange = (value) => {
   if (!result.isValid && result.reason === 'format') {
     return {
       isValid: false,
-      message: 'Enter your price range like 10000-50000.',
+      message: 'Enter your price range in this format: 10000-50000.',
     };
   }
 
   if (!result.isValid && result.reason === 'too_large') {
     return {
       isValid: false,
-      message: 'Price range is too large. Enter a realistic amount like 10000-50000.',
+      message: 'That price range looks too large. Enter a realistic range like 10000-50000.',
     };
   }
 
   if (!result.isValid) {
     return {
       isValid: false,
-      message: 'Price range must be valid and the minimum cannot exceed the maximum.',
+      message: 'Enter a valid price range where the first amount is not more than the second.',
     };
   }
 

@@ -40,10 +40,13 @@ describe('admin handler private review delivery', () => {
       location: { country: 'Nigeria', city: 'Lagos' },
       workAddress: '12 Marina',
       specialties: ['Bridal'],
+      budgetRange: { min: 15000, max: 85000, currency: 'NGN' },
       onboardingAgreement: {
+        requirementsAcknowledgedAt: '2026-04-18T09:59:00.000Z',
         termsReviewedAt: '2026-04-18T10:00:00.000Z',
         policiesAcceptedAt: '2026-04-18T10:01:00.000Z',
         pricingAcceptedAt: '2026-04-18T10:01:00.000Z',
+        termsPdfUrl: 'https://example.com/terms.pdf',
       },
       kyc: {
         idDocument: { telegramFileId: 'id-file', telegramFileType: 'document' },
@@ -67,6 +70,9 @@ describe('admin handler private review delivery', () => {
     await handleAdminTailorDetailCommand(ctx);
 
     expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Tailor private review'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Service range: NGN 15000 - 85000'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Requirements acknowledged: Yes'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Terms PDF: https://example.com/terms.pdf'));
     expect(ctx.replyWithDocument).toHaveBeenCalledWith(
       'id-file',
       expect.objectContaining({

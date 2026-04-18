@@ -45,7 +45,7 @@ export const listRecentClientRequests = async ({ limit, requestId }) => {
 export const listRecentTailorSignups = async ({ limit, requestId }) => {
   const tailors = await TailorProfile.find({})
     .select(
-      'userId publicName businessName location specialties status verificationStatus onboardingCompletedAt createdAt +phoneNumber portfolio kyc onboardingAgreement',
+      'userId publicName businessName location specialties budgetRange status verificationStatus onboardingCompletedAt createdAt +phoneNumber portfolio kyc onboardingAgreement',
     )
     .sort({ createdAt: -1 })
     .limit(limit)
@@ -65,7 +65,7 @@ export const getAdminTailorReview = async ({ tailorId, requestId }) => {
 
   const tailor = await TailorProfile.findById(normalizedTailorId)
     .select(
-      'userId fullName publicName businessName location workAddress specialties status verificationStatus onboardingCompletedAt createdAt +phoneNumber portfolio kyc onboardingAgreement',
+      'userId fullName publicName businessName location workAddress specialties budgetRange status verificationStatus onboardingCompletedAt createdAt +phoneNumber portfolio kyc onboardingAgreement',
     )
     .populate({ path: 'userId', select: 'telegramUsername' })
     .lean();

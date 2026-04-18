@@ -81,6 +81,8 @@ export const buildTailorSummary = ({ tailor }) => {
   const summaryLines = [
     'Tailor onboarding complete.',
     '',
+    'Your tailor profile has been submitted for review.',
+    '',
     `Full name: ${tailor.fullName}`,
     `Business name: ${tailor.businessName}`,
     `Public name: ${tailor.publicName}`,
@@ -88,11 +90,11 @@ export const buildTailorSummary = ({ tailor }) => {
     `City: ${location.city ?? 'Not set'}`,
     `Work address: ${tailor.workAddress}`,
     `Specialties: ${specialties.length > 0 ? specialties.join(', ') : 'Not set'}`,
-    `Status: ${tailor.status ?? 'pending_review'}`,
+    `Profile status: ${tailor.status ?? 'pending_review'}`,
     `Verification: ${tailor.verificationStatus ?? 'pending'}`,
     `Portfolio uploads: ${portfolio.length}`,
     `ID submitted: ${kyc.idDocument?.telegramFileId ? 'Yes' : 'No'}`,
-    `Workplace image submitted: ${kyc.workplaceImage?.telegramFileId ? 'Yes' : 'No'}`,
+    `Workplace image uploaded: ${kyc.workplaceImage?.telegramFileId ? 'Yes' : 'No'}`,
     `Selfie with ID submitted: ${kyc.selfieWithId?.telegramFileId ? 'Yes' : 'No'}`,
   ];
 
