@@ -101,26 +101,26 @@ export const validateTailorSpecialties = (value) => {
 };
 
 export const validateTailorBudgetRange = (value) => {
-  const result = parseBudgetRangeInput(value, { allowSkip: true });
+  const result = parseBudgetRangeInput(value, { allowSkip: false });
 
   if (!result.isValid && result.reason === 'format') {
     return {
       isValid: false,
-      message: 'Enter a budget range like 10000-50000, or send skip.',
+      message: 'Enter your price range like 10000-50000.',
     };
   }
 
   if (!result.isValid && result.reason === 'too_large') {
     return {
       isValid: false,
-      message: 'Budget range is too large. Enter a realistic amount like 10000-50000, or send skip.',
+      message: 'Price range is too large. Enter a realistic amount like 10000-50000.',
     };
   }
 
   if (!result.isValid) {
     return {
       isValid: false,
-      message: 'Budget range must be valid and the minimum cannot exceed the maximum.',
+      message: 'Price range must be valid and the minimum cannot exceed the maximum.',
     };
   }
 

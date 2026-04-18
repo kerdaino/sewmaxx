@@ -42,6 +42,7 @@ const envSchema = Joi.object({
   BOT_SPAM_WINDOW_MS: Joi.number().integer().positive().default(60 * 1000),
   BOT_SPAM_MAX_ACTIONS: Joi.number().integer().positive().default(8),
   TAILOR_DEFAULT_STATUS: Joi.string().valid('pending_review', 'active').default('pending_review'),
+  TAILOR_TERMS_PDF_URL: Joi.string().uri().allow('').default(''),
   ADMIN_DEV_TOKEN: Joi.string().min(24).allow('').optional(),
   ADMIN_ALLOWED_IPS: Joi.string().allow('').default(''),
   TELEGRAM_ADMIN_IDS: Joi.string().allow('').default(''),

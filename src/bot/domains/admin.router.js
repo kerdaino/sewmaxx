@@ -1,7 +1,9 @@
 import { Composer } from 'telegraf';
 import {
+  handleAdminAffiliateDetailCommand,
   handleAdminAffiliatesCommand,
   handleAdminRequestsCommand,
+  handleAdminTailorDetailCommand,
   handleAdminTailorsCommand,
   handleApproveAffiliateCommand,
   handleApproveTailorCommand,
@@ -13,7 +15,9 @@ import {
 const adminRouter = new Composer();
 
 adminRouter.command('admin_affiliates', handleAdminAffiliatesCommand);
+adminRouter.command('admin_affiliate_detail', handleAdminAffiliateDetailCommand);
 adminRouter.command('admin_tailors', handleAdminTailorsCommand);
+adminRouter.command('admin_tailor_detail', handleAdminTailorDetailCommand);
 adminRouter.command('approve_affiliate', handleApproveAffiliateCommand);
 adminRouter.command('approve_tailor', handleApproveTailorCommand);
 adminRouter.command('reject_affiliate', handleRejectAffiliateCommand);

@@ -10,15 +10,32 @@ export const getExistingAffiliateProfile = async (telegramUserId) => {
     return null;
   }
 
-  return AffiliateProfile.findOne({ userId: user._id }).lean();
+  return AffiliateProfile.findOne({ userId: user._id })
+    .select(
+      '+phoneNumber +kycDetails.legalPhoneNumber +kycDetails.country +kycDetails.city +kycDetails.idDocument.telegramFileId +kycDetails.idDocument.telegramFileUniqueId +kycDetails.idDocument.telegramFileType +kycDetails.idDocument.mimeType +kycDetails.idDocument.fileName +kycDetails.idDocument.submittedAt +kycDetails.selfieWithId.telegramFileId +kycDetails.selfieWithId.telegramFileUniqueId +kycDetails.selfieWithId.telegramFileType +kycDetails.selfieWithId.mimeType +kycDetails.selfieWithId.fileName +kycDetails.selfieWithId.submittedAt',
+    )
+    .lean();
 };
 
-export const completeAffiliateOnboarding = async ({ telegramUserId, telegramUsername, fullName, displayName }) => {
+export const completeAffiliateOnboarding = async ({
+  telegramUserId,
+  telegramUsername,
+  fullName,
+  displayName,
+  phoneNumber,
+  country,
+  city,
+  kycDetails,
+}) => {
   const affiliate = await onboardAffiliate({
     telegramUserId,
     telegramUsername,
     fullName,
     displayName,
+    phoneNumber,
+    country,
+    city,
+    kycDetails,
   });
 
   return {
@@ -33,6 +50,11 @@ export const buildAffiliateSummary = ({ affiliate, referralLink }) => {
     '',
     `Full name: ${affiliate.fullName}`,
     `Display name: ${affiliate.displayName}`,
+    `Phone number: ${affiliate.phoneNumber || affiliate.kycDetails?.legalPhoneNumber || 'Not set'}`,
+    `Country: ${affiliate.location?.country ?? affiliate.kycDetails?.country ?? 'Not set'}`,
+    `City: ${affiliate.location?.city ?? affiliate.kycDetails?.city ?? 'Not set'}`,
+    `ID submitted: ${affiliate.kycDetails?.idDocument?.telegramFileId ? 'Yes' : 'No'}`,
+    `Selfie with ID submitted: ${affiliate.kycDetails?.selfieWithId?.telegramFileId ? 'Yes' : 'No'}`,
     `Affiliate code: ${affiliate.affiliateCode}`,
     `Status: ${affiliate.status}`,
   ];

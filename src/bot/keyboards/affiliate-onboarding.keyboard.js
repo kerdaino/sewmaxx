@@ -6,6 +6,9 @@ export const buildAffiliateDisplayNameKeyboard = () =>
     [Markup.button.callback('Restart', 'affiliate:onboarding:restart')],
   ]);
 
+export const buildAffiliateKycKeyboard = () =>
+  Markup.inlineKeyboard([[Markup.button.callback('Restart', 'affiliate:onboarding:restart')]]);
+
 export const buildAffiliateSummaryKeyboard = (referralLink) => {
   const buttons = [[Markup.button.callback('Restart Affiliate Setup', 'affiliate:onboarding:restart')]];
 

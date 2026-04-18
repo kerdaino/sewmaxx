@@ -25,6 +25,9 @@ export const completeTailorOnboarding = async ({
   workAddress,
   specialties,
   budgetRange,
+  portfolio,
+  kyc,
+  onboardingAgreement,
 }) => {
   const tailor = await onboardTailor({
     telegramUserId,
@@ -41,6 +44,9 @@ export const completeTailorOnboarding = async ({
     budgetMin: budgetRange.min,
     budgetMax: budgetRange.max,
     currency: budgetRange.currency,
+    portfolio,
+    kyc,
+    onboardingAgreement,
   });
 
   return {
@@ -52,13 +58,15 @@ export const completeTailorOnboarding = async ({
       ...(tailor.location ?? {}),
     },
     specialties: Array.isArray(tailor.specialties) ? tailor.specialties : specialties,
-    portfolio: Array.isArray(tailor.portfolio) ? tailor.portfolio : [],
+    portfolio: Array.isArray(tailor.portfolio) ? tailor.portfolio : portfolio ?? [],
     budgetRange:
       tailor.budgetRange ?? {
         min: budgetRange.min,
         max: budgetRange.max,
         currency: budgetRange.currency ?? 'NGN',
       },
+    kyc: tailor.kyc ?? kyc ?? {},
+    onboardingAgreement: tailor.onboardingAgreement ?? onboardingAgreement ?? {},
     status: tailor.status ?? 'pending_review',
     verificationStatus: tailor.verificationStatus ?? 'pending',
   };
@@ -69,6 +77,7 @@ export const buildTailorSummary = ({ tailor }) => {
   const specialties = Array.isArray(tailor.specialties) ? tailor.specialties : [];
   const portfolio = Array.isArray(tailor.portfolio) ? tailor.portfolio : [];
   const budgetRange = tailor.budgetRange ?? {};
+  const kyc = tailor.kyc ?? {};
   const summaryLines = [
     'Tailor onboarding complete.',
     '',
@@ -81,7 +90,10 @@ export const buildTailorSummary = ({ tailor }) => {
     `Specialties: ${specialties.length > 0 ? specialties.join(', ') : 'Not set'}`,
     `Status: ${tailor.status ?? 'pending_review'}`,
     `Verification: ${tailor.verificationStatus ?? 'pending'}`,
-    `Portfolio placeholders: ${portfolio.length}`,
+    `Portfolio uploads: ${portfolio.length}`,
+    `ID submitted: ${kyc.idDocument?.telegramFileId ? 'Yes' : 'No'}`,
+    `Workplace image submitted: ${kyc.workplaceImage?.telegramFileId ? 'Yes' : 'No'}`,
+    `Selfie with ID submitted: ${kyc.selfieWithId?.telegramFileId ? 'Yes' : 'No'}`,
   ];
 
   if (budgetRange.min !== null && budgetRange.min !== undefined && budgetRange.max !== null && budgetRange.max !== undefined) {

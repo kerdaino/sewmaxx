@@ -19,7 +19,9 @@ describe('buildTailorSummary', () => {
     });
 
     expect(summary).toContain('Tailor onboarding complete.');
-    expect(summary).toContain('Portfolio placeholders: 0');
+    expect(summary).toContain('Portfolio uploads: 0');
+    expect(summary).toContain('ID submitted: No');
+    expect(summary).toContain('Selfie with ID submitted: No');
     expect(summary).toContain('Verification: pending');
     expect(summary).toContain('Service range: not set');
   });

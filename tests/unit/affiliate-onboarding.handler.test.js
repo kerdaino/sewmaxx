@@ -35,6 +35,10 @@ describe('affiliate onboarding resume logic', () => {
     getExistingAffiliateProfile.mockResolvedValue({
       affiliateCode: 'AFF-1234',
       onboardingCompletedAt: new Date().toISOString(),
+      kycDetails: {
+        idDocument: { telegramFileId: 'id-file' },
+        selfieWithId: { telegramFileId: 'selfie-file' },
+      },
     });
     buildTelegramReferralLink.mockReturnValue('https://t.me/sewmaxx_test_bot?start=AFF-1234');
     buildAffiliateSummary.mockReturnValue('Affiliate onboarding complete.');

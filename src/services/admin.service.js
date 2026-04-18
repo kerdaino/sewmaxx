@@ -9,7 +9,9 @@ import { assertValidObjectId } from '../utils/object-id.js';
 
 export const listRecentAffiliates = async ({ limit, requestId }) => {
   const affiliates = await AffiliateProfile.find({})
-    .select('userId displayName fullName affiliateCode status verificationStatus onboardingCompletedAt createdAt +phoneNumber')
+    .select(
+      'userId displayName fullName affiliateCode status verificationStatus onboardingCompletedAt createdAt +phoneNumber +kycDetails.legalPhoneNumber +kycDetails.country +kycDetails.city +kycDetails.idDocument.telegramFileId +kycDetails.selfieWithId.telegramFileId',
+    )
     .sort({ createdAt: -1 })
     .limit(limit)
     .populate({ path: 'userId', select: 'telegramUsername' })
@@ -42,7 +44,9 @@ export const listRecentClientRequests = async ({ limit, requestId }) => {
 
 export const listRecentTailorSignups = async ({ limit, requestId }) => {
   const tailors = await TailorProfile.find({})
-    .select('userId publicName businessName location specialties status verificationStatus onboardingCompletedAt createdAt +phoneNumber')
+    .select(
+      'userId publicName businessName location specialties status verificationStatus onboardingCompletedAt createdAt +phoneNumber portfolio kyc onboardingAgreement',
+    )
     .sort({ createdAt: -1 })
     .limit(limit)
     .populate({ path: 'userId', select: 'telegramUsername' })
@@ -54,6 +58,50 @@ export const listRecentTailorSignups = async ({ limit, requestId }) => {
   );
 
   return tailors;
+};
+
+export const getAdminTailorReview = async ({ tailorId, requestId }) => {
+  const normalizedTailorId = assertValidObjectId(tailorId, 'Tailor id');
+
+  const tailor = await TailorProfile.findById(normalizedTailorId)
+    .select(
+      'userId fullName publicName businessName location workAddress specialties status verificationStatus onboardingCompletedAt createdAt +phoneNumber portfolio kyc onboardingAgreement',
+    )
+    .populate({ path: 'userId', select: 'telegramUsername' })
+    .lean();
+
+  if (!tailor) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Tailor not found');
+  }
+
+  logger.info(
+    { requestId, event: 'admin_tailor_review_loaded', tailorId: normalizedTailorId },
+    'Admin tailor review loaded',
+  );
+
+  return tailor;
+};
+
+export const getAdminAffiliateReview = async ({ affiliateId, requestId }) => {
+  const normalizedAffiliateId = assertValidObjectId(affiliateId, 'Affiliate id');
+
+  const affiliate = await AffiliateProfile.findById(normalizedAffiliateId)
+    .select(
+      'userId fullName displayName affiliateCode status verificationStatus onboardingCompletedAt createdAt +phoneNumber location +kycDetails.legalPhoneNumber +kycDetails.country +kycDetails.city +kycDetails.idDocument.telegramFileId +kycDetails.idDocument.telegramFileUniqueId +kycDetails.idDocument.telegramFileType +kycDetails.idDocument.mimeType +kycDetails.idDocument.fileName +kycDetails.idDocument.submittedAt +kycDetails.selfieWithId.telegramFileId +kycDetails.selfieWithId.telegramFileUniqueId +kycDetails.selfieWithId.telegramFileType +kycDetails.selfieWithId.mimeType +kycDetails.selfieWithId.fileName +kycDetails.selfieWithId.submittedAt',
+    )
+    .populate({ path: 'userId', select: 'telegramUsername' })
+    .lean();
+
+  if (!affiliate) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Affiliate not found');
+  }
+
+  logger.info(
+    { requestId, event: 'admin_affiliate_review_loaded', affiliateId: normalizedAffiliateId },
+    'Admin affiliate review loaded',
+  );
+
+  return affiliate;
 };
 
 export const reviewSearchSessions = async ({ limit, requestId }) => {

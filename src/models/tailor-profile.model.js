@@ -13,6 +13,79 @@ const portfolioItemSchema = new mongoose.Schema(
     title: sanitizedString(120, { default: '' }),
     assetKey: sanitizedString(120, { default: '' }),
     caption: sanitizedString(240, { default: '' }),
+    telegramFileId: sanitizedString(255, { default: '' }),
+    telegramFileUniqueId: sanitizedString(255, { default: '' }),
+    telegramFileType: {
+      type: String,
+      enum: ['photo', 'document'],
+      default: 'photo',
+    },
+    mimeType: sanitizedString(120, { default: '' }),
+    fileName: sanitizedString(180, { default: '' }),
+    submittedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false },
+);
+
+const onboardingAssetSchema = new mongoose.Schema(
+  {
+    telegramFileId: sanitizedString(255, { default: '' }),
+    telegramFileUniqueId: sanitizedString(255, { default: '' }),
+    telegramFileType: {
+      type: String,
+      enum: ['photo', 'document'],
+      default: 'photo',
+    },
+    mimeType: sanitizedString(120, { default: '' }),
+    fileName: sanitizedString(180, { default: '' }),
+    submittedAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  { _id: false },
+);
+
+const tailorKycSchema = new mongoose.Schema(
+  {
+    idDocument: {
+      type: onboardingAssetSchema,
+      default: () => ({}),
+    },
+    workplaceImage: {
+      type: onboardingAssetSchema,
+      default: () => ({}),
+    },
+    selfieWithId: {
+      type: onboardingAssetSchema,
+      default: () => ({}),
+    },
+  },
+  { _id: false },
+);
+
+const tailorAgreementSchema = new mongoose.Schema(
+  {
+    requirementsAcknowledgedAt: {
+      type: Date,
+      default: null,
+    },
+    termsReviewedAt: {
+      type: Date,
+      default: null,
+    },
+    policiesAcceptedAt: {
+      type: Date,
+      default: null,
+    },
+    pricingAcceptedAt: {
+      type: Date,
+      default: null,
+    },
+    termsPdfUrl: sanitizedString(500, { default: '' }),
   },
   { _id: false },
 );
@@ -67,6 +140,14 @@ const tailorProfileSchema = new mongoose.Schema(
         },
         message: 'Portfolio exceeds maximum size of 20',
       },
+    },
+    kyc: {
+      type: tailorKycSchema,
+      default: () => ({}),
+    },
+    onboardingAgreement: {
+      type: tailorAgreementSchema,
+      default: () => ({}),
     },
     isAvailable: {
       type: Boolean,

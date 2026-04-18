@@ -25,10 +25,41 @@ describe('validation logic', () => {
       telegramUsername: 'brand_user',
       fullName: '  Jane \u0000 Doe  ',
       displayName: '  Jane Brand ',
+      phoneNumber: '+2348012345678',
+      country: 'Nigeria',
+      city: 'Lagos',
+      kycDetails: {
+        idDocument: {
+          telegramFileId: 'id-file',
+        },
+        selfieWithId: {
+          telegramFileId: 'selfie-file',
+        },
+      },
     });
 
     expect(payload.fullName).toBe('Jane Doe');
     expect(payload.displayName).toBe('Jane Brand');
+    expect(payload.kycDetails.idDocument.telegramFileId).toBe('id-file');
+    expect(payload.kycDetails.selfieWithId.telegramFileId).toBe('selfie-file');
+  });
+
+  it('rejects affiliate onboarding payloads when required KYC uploads are missing', () => {
+    expect(() =>
+      validatePayload(affiliateOnboardingSchema, {
+        telegramUserId: '12345',
+        telegramUsername: 'brand_user',
+        fullName: 'Jane Doe',
+        phoneNumber: '+2348012345678',
+        country: 'Nigeria',
+        city: 'Lagos',
+        kycDetails: {
+          idDocument: {
+            telegramFileId: 'id-file',
+          },
+        },
+      }),
+    ).toThrow();
   });
 
   it('rejects invalid request budget ranges', () => {
@@ -70,6 +101,19 @@ describe('validation logic', () => {
       specialties: ['bridal', 'dress'],
       budgetMin: 10000,
       budgetMax: 50000,
+      portfolio: [{ title: 'Look 1', telegramFileId: 'portfolio-file' }],
+      kyc: {
+        idDocument: { telegramFileId: 'id-file' },
+        workplaceImage: { telegramFileId: 'workplace-file' },
+        selfieWithId: { telegramFileId: 'selfie-file' },
+      },
+      onboardingAgreement: {
+        requirementsAcknowledgedAt: '2026-04-18T10:00:00.000Z',
+        termsReviewedAt: '2026-04-18T10:05:00.000Z',
+        policiesAcceptedAt: '2026-04-18T10:06:00.000Z',
+        pricingAcceptedAt: '2026-04-18T10:06:00.000Z',
+        termsPdfUrl: 'https://example.com/terms.pdf',
+      },
     });
 
     expect(payload.fullName).toBe('Ada Tailor');
@@ -79,14 +123,43 @@ describe('validation logic', () => {
     expect(payload.budgetMax).toBe(50000);
   });
 
-  it('accepts valid tailor budget ranges and skip', () => {
+  it('rejects tailor onboarding payloads when required uploads or agreement data are missing', () => {
+    expect(() =>
+      validatePayload(tailorOnboardingSchema, {
+        telegramUserId: '12345',
+        telegramUsername: 'tailor_user',
+        fullName: 'Ada Tailor',
+        businessName: 'Ada Stitches',
+        publicName: 'Ada Bridal',
+        phoneNumber: '08012345678',
+        country: 'Nigeria',
+        city: 'Lagos',
+        workAddress: '12 Marina',
+        specialties: ['bridal', 'dress'],
+        budgetMin: 10000,
+        budgetMax: 50000,
+        portfolio: [{ title: 'Look 1', telegramFileId: 'portfolio-file' }],
+        kyc: {
+          idDocument: { telegramFileId: 'id-file' },
+          workplaceImage: { telegramFileId: 'workplace-file' },
+        },
+        onboardingAgreement: {
+          requirementsAcknowledgedAt: '2026-04-18T10:00:00.000Z',
+          termsReviewedAt: '2026-04-18T10:05:00.000Z',
+          policiesAcceptedAt: '2026-04-18T10:06:00.000Z',
+        },
+      }),
+    ).toThrow();
+  });
+
+  it('accepts valid tailor budget ranges and rejects skip', () => {
     const ranged = validateTailorBudgetRange('10000-50000');
     const skipped = validateTailorBudgetRange('skip');
 
     expect(ranged.isValid).toBe(true);
     expect(ranged.value).toEqual({ min: 10000, max: 50000, currency: 'NGN' });
-    expect(skipped.isValid).toBe(true);
-    expect(skipped.value).toEqual({ min: null, max: null, currency: 'NGN' });
+    expect(skipped.isValid).toBe(false);
+    expect(skipped.message).toContain('Enter your price range');
   });
 
   it('accepts practical client and tailor phone numbers', () => {

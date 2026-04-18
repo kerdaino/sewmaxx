@@ -17,6 +17,76 @@ const buildUpsertOptions = () => ({
   context: 'query',
 });
 
+const hasUploadedAsset = (asset) => Boolean(asset?.telegramFileId);
+
+const ensureAffiliateKycRequirements = (payload) => {
+  if (!payload.phoneNumber) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Phone number is required');
+  }
+
+  if (!payload.country) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Country is required');
+  }
+
+  if (!payload.city) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'City is required');
+  }
+
+  if (!hasUploadedAsset(payload.kycDetails?.idDocument)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Affiliate ID upload is required');
+  }
+
+  if (!hasUploadedAsset(payload.kycDetails?.selfieWithId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Affiliate selfie with ID upload is required');
+  }
+};
+
+const ensureTailorOnboardingRequirements = (payload) => {
+  if (!Array.isArray(payload.specialties) || payload.specialties.length === 0) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'At least one specialty is required');
+  }
+
+  if (typeof payload.budgetMin !== 'number' || typeof payload.budgetMax !== 'number') {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Tailor price range is required');
+  }
+
+  if (payload.budgetMin > payload.budgetMax) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Tailor price range is invalid');
+  }
+
+  if (!Array.isArray(payload.portfolio) || payload.portfolio.length === 0) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'At least one tailor portfolio upload is required');
+  }
+
+  if (!hasUploadedAsset(payload.kyc?.idDocument)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Tailor ID upload is required');
+  }
+
+  if (!hasUploadedAsset(payload.kyc?.selfieWithId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Tailor selfie with ID upload is required');
+  }
+
+  if (!hasUploadedAsset(payload.kyc?.workplaceImage)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Tailor workplace image upload is required');
+  }
+
+  if (!payload.onboardingAgreement?.requirementsAcknowledgedAt) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Tailor requirements acknowledgement is required');
+  }
+
+  if (!payload.onboardingAgreement?.termsReviewedAt) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Tailor terms review is required');
+  }
+
+  if (!payload.onboardingAgreement?.policiesAcceptedAt) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Tailor policy acceptance is required');
+  }
+
+  if (!payload.onboardingAgreement?.pricingAcceptedAt) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Tailor pricing acceptance is required');
+  }
+};
+
 const createAffiliateProfile = async (userId, payload, completedAt) =>
   AffiliateProfile.findOneAndUpdate(
     { userId },
@@ -29,11 +99,31 @@ const createAffiliateProfile = async (userId, payload, completedAt) =>
         fullName: payload.fullName,
         displayName: payload.displayName || payload.fullName,
         phoneNumber: payload.phoneNumber ?? '',
+        location:
+          payload.country || payload.city
+            ? {
+                city: payload.city ?? '',
+                state: payload.state ?? '',
+                country: payload.country ?? '',
+                area: payload.area ?? '',
+              }
+            : undefined,
+        kycDetails: {
+          legalPhoneNumber: payload.phoneNumber ?? '',
+          country: payload.country ?? '',
+          city: payload.city ?? '',
+          idDocument: payload.kycDetails?.idDocument ?? {},
+          selfieWithId: payload.kycDetails?.selfieWithId ?? {},
+        },
         onboardingCompletedAt: completedAt,
       },
     },
     buildUpsertOptions(),
-  ).lean();
+  )
+    .select(
+      '+phoneNumber +kycDetails.legalPhoneNumber +kycDetails.country +kycDetails.city +kycDetails.idDocument.telegramFileId +kycDetails.idDocument.telegramFileUniqueId +kycDetails.idDocument.telegramFileType +kycDetails.idDocument.mimeType +kycDetails.idDocument.fileName +kycDetails.idDocument.submittedAt +kycDetails.selfieWithId.telegramFileId +kycDetails.selfieWithId.telegramFileUniqueId +kycDetails.selfieWithId.telegramFileType +kycDetails.selfieWithId.mimeType +kycDetails.selfieWithId.fileName +kycDetails.selfieWithId.submittedAt',
+    )
+    .lean();
 
 const generateUniqueAffiliateCode = async () => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -69,6 +159,8 @@ const upsertUser = async (payload, primaryRole) =>
   ).lean();
 
 export const onboardAffiliate = async (payload) => {
+  ensureAffiliateKycRequirements(payload);
+
   const user = await upsertUser(payload, 'affiliate');
   const completedAt = new Date();
 
@@ -187,9 +279,7 @@ export const onboardClient = async (payload) => {
 };
 
 export const onboardTailor = async (payload) => {
-  if (!Array.isArray(payload.specialties) || payload.specialties.length === 0) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'At least one specialty is required');
-  }
+  ensureTailorOnboardingRequirements(payload);
 
   const user = await upsertUser(payload, 'tailor');
 
@@ -228,6 +318,19 @@ export const onboardTailor = async (payload) => {
           min: payload.budgetMin ?? null,
           max: payload.budgetMax ?? null,
           currency: payload.currency ?? 'NGN',
+        },
+        portfolio: Array.isArray(payload.portfolio) ? payload.portfolio : [],
+        kyc: {
+          idDocument: payload.kyc?.idDocument ?? {},
+          workplaceImage: payload.kyc?.workplaceImage ?? {},
+          selfieWithId: payload.kyc?.selfieWithId ?? {},
+        },
+        onboardingAgreement: {
+          requirementsAcknowledgedAt: payload.onboardingAgreement?.requirementsAcknowledgedAt ?? null,
+          termsReviewedAt: payload.onboardingAgreement?.termsReviewedAt ?? null,
+          policiesAcceptedAt: payload.onboardingAgreement?.policiesAcceptedAt ?? null,
+          pricingAcceptedAt: payload.onboardingAgreement?.pricingAcceptedAt ?? null,
+          termsPdfUrl: payload.onboardingAgreement?.termsPdfUrl ?? '',
         },
         onboardingCompletedAt: completedAt,
       },

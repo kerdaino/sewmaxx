@@ -1,6 +1,9 @@
 import {
+  buildTailorAgreementKeyboard,
+  buildTailorEntryKeyboard,
   buildTailorOnboardingControls,
   buildTailorPublicNameKeyboard,
+  buildTailorTermsKeyboard,
 } from '../keyboards/tailor-onboarding.keyboard.js';
 import {
   buildTailorSummary,
@@ -20,6 +23,7 @@ import {
 } from '../validators/tailor-onboarding.validator.js';
 import { buildNextStepsMessage } from '../services/role-guidance.service.js';
 import { logger } from '../../config/logger.js';
+import { env } from '../../config/env.js';
 import { serializeErrorForLog } from '../../utils/error-log.js';
 
 const resetTailorDraft = (ctx) => {
@@ -27,6 +31,93 @@ const resetTailorDraft = (ctx) => {
   ctx.session.activeDomain = 'onboarding';
   ctx.session.selectedRole = 'tailor';
   ctx.session.onboardingDraft = {};
+};
+
+const buildTailorRequirementsMessage = () =>
+  [
+    'Tailor onboarding requirements',
+    '',
+    'Before joining Sewmaxx, please carefully review and fully understand the tailor terms and conditions.',
+    '',
+    'To join Sewmaxx, you must:',
+    '- Be at least 18 years old',
+    '- Have proven experience in tailoring',
+    '- Be capable of producing African wear, including Agbada, Kaftan, and related garments',
+    '- Own or have access to sewing equipment',
+    '- Be able to deliver consistent, professional results',
+    '- Be ready to submit your price range, portfolio, ID, workplace image, and selfie while holding the same ID for admin review',
+    '',
+    'Select Accept to review the Terms & Conditions before proceeding, or Cancel to return to the start.',
+  ].join('\n');
+
+const buildTailorTermsMessage = () =>
+  [
+    'Tailor terms review',
+    '',
+    'Please review our Terms & Conditions before proceeding.',
+    env.TAILOR_TERMS_PDF_URL
+      ? 'Tap View Terms to open the official Sewmaxx tailor onboarding PDF, then continue after viewing.'
+      : 'Set TAILOR_TERMS_PDF_URL to attach the official Sewmaxx tailor onboarding PDF, then continue after viewing.',
+  ].join('\n');
+
+const buildTailorAgreementMessage = () =>
+  [
+    'Tailor agreement confirmation',
+    '',
+    'By continuing, you agree to Sewmaxx terms, pricing and commission structure.',
+    '',
+    'You also confirm that you have reviewed the official terms and agree to Sewmaxx policies before onboarding continues.',
+  ].join('\n');
+
+const extractTelegramAssetFromMessage = (ctx) => {
+  if (Array.isArray(ctx.message?.photo) && ctx.message.photo.length > 0) {
+    const largestPhoto = ctx.message.photo[ctx.message.photo.length - 1];
+
+    return {
+      telegramFileId: largestPhoto.file_id,
+      telegramFileUniqueId: largestPhoto.file_unique_id ?? '',
+      telegramFileType: 'photo',
+      mimeType: 'image/jpeg',
+      fileName: '',
+      submittedAt: new Date(),
+    };
+  }
+
+  if (
+    ctx.message?.document?.file_id &&
+    typeof ctx.message.document.mime_type === 'string' &&
+    ctx.message.document.mime_type.startsWith('image/')
+  ) {
+    return {
+      telegramFileId: ctx.message.document.file_id,
+      telegramFileUniqueId: ctx.message.document.file_unique_id ?? '',
+      telegramFileType: 'document',
+      mimeType: ctx.message.document.mime_type,
+      fileName: ctx.message.document.file_name ?? '',
+      submittedAt: new Date(),
+    };
+  }
+
+  return null;
+};
+
+const promptTailorFullName = async (ctx, prefix = 'Let’s set up your tailor profile.') => {
+  await ctx.reply(`${prefix}\n\nWhat is your full name?\nExample: Adaobi Okafor`);
+};
+
+const promptTailorCountry = async (ctx) => {
+  await ctx.reply('Which country is your tailoring base in?\nExample: Nigeria');
+};
+
+const cancelTailorOnboarding = async (ctx, callbackMessage = 'Tailor onboarding reset') => {
+  resetTailorDraft(ctx);
+  ctx.session.onboardingStep = 'tailor_requirements_gate';
+
+  if (ctx.answerCbQuery) {
+    await ctx.answerCbQuery(callbackMessage);
+  }
+
+  await ctx.reply(buildTailorRequirementsMessage(), buildTailorEntryKeyboard());
 };
 
 export const startTailorOnboarding = async (ctx) => {
@@ -48,20 +139,72 @@ export const startTailorOnboarding = async (ctx) => {
   }
 
   resetTailorDraft(ctx);
-  ctx.session.onboardingStep = 'tailor_full_name';
+  ctx.session.onboardingStep = 'tailor_requirements_gate';
 
-  await ctx.reply('Let’s set up your tailor profile. What is your full name?');
+  await ctx.reply(buildTailorRequirementsMessage(), buildTailorEntryKeyboard());
 };
 
 export const restartTailorOnboarding = async (ctx) => {
   resetTailorDraft(ctx);
-  ctx.session.onboardingStep = 'tailor_full_name';
+  ctx.session.onboardingStep = 'tailor_requirements_gate';
 
   if (ctx.answerCbQuery) {
     await ctx.answerCbQuery('Tailor onboarding restarted');
   }
 
-  await ctx.reply('Tailor onboarding restarted. What is your full name?');
+  await ctx.reply(buildTailorRequirementsMessage(), buildTailorEntryKeyboard());
+};
+
+export const handleTailorEntryAccept = async (ctx) => {
+  ctx.session.onboardingDraft = {
+    ...(ctx.session.onboardingDraft ?? {}),
+    onboardingAgreement: {
+      ...(ctx.session.onboardingDraft?.onboardingAgreement ?? {}),
+      requirementsAcknowledgedAt: new Date().toISOString(),
+      termsPdfUrl: env.TAILOR_TERMS_PDF_URL ?? '',
+    },
+  };
+  ctx.session.onboardingStep = 'tailor_terms_review';
+
+  await ctx.answerCbQuery();
+  await ctx.reply(buildTailorTermsMessage(), buildTailorTermsKeyboard(env.TAILOR_TERMS_PDF_URL));
+};
+
+export const handleTailorTermsReviewed = async (ctx) => {
+  ctx.session.onboardingDraft = {
+    ...(ctx.session.onboardingDraft ?? {}),
+    onboardingAgreement: {
+      ...(ctx.session.onboardingDraft?.onboardingAgreement ?? {}),
+      termsReviewedAt: new Date().toISOString(),
+      termsPdfUrl: env.TAILOR_TERMS_PDF_URL ?? '',
+    },
+  };
+  ctx.session.onboardingStep = 'tailor_agreement_confirmation';
+
+  await ctx.answerCbQuery();
+  await ctx.reply(buildTailorAgreementMessage(), buildTailorAgreementKeyboard());
+};
+
+export const handleTailorAgreementAccept = async (ctx) => {
+  const acceptedAt = new Date().toISOString();
+
+  ctx.session.onboardingDraft = {
+    ...(ctx.session.onboardingDraft ?? {}),
+    onboardingAgreement: {
+      ...(ctx.session.onboardingDraft?.onboardingAgreement ?? {}),
+      policiesAcceptedAt: acceptedAt,
+      pricingAcceptedAt: acceptedAt,
+      termsPdfUrl: env.TAILOR_TERMS_PDF_URL ?? '',
+    },
+  };
+  ctx.session.onboardingStep = 'tailor_full_name';
+
+  await ctx.answerCbQuery();
+  await promptTailorFullName(ctx);
+};
+
+export const handleTailorEntryCancel = async (ctx) => {
+  await cancelTailorOnboarding(ctx);
 };
 
 export const handleTailorFullNameInput = async (ctx) => {
@@ -78,7 +221,9 @@ export const handleTailorFullNameInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'tailor_phone_number';
 
-  await ctx.reply('What phone number should we save for manual coordination?');
+  await ctx.reply(
+    'What phone number should we save for manual coordination?\nExample: +234 801 234 5678',
+  );
   return true;
 };
 
@@ -96,7 +241,7 @@ export const handleTailorPhoneNumberInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'tailor_business_name';
 
-  await ctx.reply('What is your business name?');
+  await ctx.reply('What is your business name?\nExample: Ada Stitches Atelier');
   return true;
 };
 
@@ -115,7 +260,7 @@ export const handleTailorBusinessNameInput = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_public_name';
 
   await ctx.reply(
-    'What public name or display username should clients see?',
+    'What public name or display username should clients see?\nExample: Ada Bridal Studio',
     buildTailorPublicNameKeyboard(),
   );
   return true;
@@ -137,7 +282,7 @@ export const handleTailorUseBusinessName = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_country';
 
   await ctx.answerCbQuery();
-  await ctx.reply('Which country is your tailoring base in?');
+  await promptTailorCountry(ctx);
 };
 
 export const handleTailorPublicNameInput = async (ctx) => {
@@ -154,7 +299,7 @@ export const handleTailorPublicNameInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'tailor_country';
 
-  await ctx.reply('Which country is your tailoring base in?');
+  await promptTailorCountry(ctx);
   return true;
 };
 
@@ -172,7 +317,7 @@ export const handleTailorCountryInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'tailor_city';
 
-  await ctx.reply('Which city do you work from?');
+  await ctx.reply('Which city do you work from?\nExample: Lagos');
   return true;
 };
 
@@ -191,7 +336,9 @@ export const handleTailorCityInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'tailor_work_address';
 
-  await ctx.reply('What work address should we save for your tailoring base?');
+  await ctx.reply(
+    'What work address should we save for your tailoring base?\nExample: 12 Marina Road, Lagos Island',
+  );
   return true;
 };
 
@@ -210,7 +357,9 @@ export const handleTailorWorkAddressInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'tailor_specialties';
 
-  await ctx.reply('List your sewing categories or style specialties, separated by commas.');
+  await ctx.reply(
+    'List your sewing categories or style specialties, separated by commas.\nExample: Bridal, Asoebi, Ready-to-wear',
+  );
   return true;
 };
 
@@ -228,7 +377,9 @@ export const handleTailorSpecialtiesInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'tailor_budget_range';
 
-  await ctx.reply('Enter your service range like 10000-50000, or send skip.');
+  await ctx.reply(
+    'Enter your mandatory service price range like 10000-50000.\nExample: 15000-85000',
+  );
   return true;
 };
 
@@ -244,6 +395,101 @@ export const handleTailorBudgetRangeInput = async (ctx) => {
     ...(ctx.session.onboardingDraft ?? {}),
     budgetRange: result.value,
   };
+  ctx.session.onboardingStep = 'tailor_portfolio_upload';
+
+  await ctx.reply(
+    'Upload one portfolio image from your previous work.\nExample: a clear photo of a finished bridal gown, senator wear, or ready-to-wear piece.',
+  );
+  return true;
+};
+
+export const handleTailorPortfolioUpload = async (ctx) => {
+  const asset = extractTelegramAssetFromMessage(ctx);
+
+  if (!asset) {
+    await ctx.reply('Please send an image file for your portfolio upload.');
+    return true;
+  }
+
+  ctx.session.onboardingDraft = {
+    ...(ctx.session.onboardingDraft ?? {}),
+    portfolio: [
+      ...((Array.isArray(ctx.session.onboardingDraft?.portfolio) && ctx.session.onboardingDraft.portfolio) || []),
+      {
+        title: 'Portfolio Upload',
+        assetKey: asset.telegramFileId,
+        caption: '',
+        ...asset,
+      },
+    ],
+  };
+  ctx.session.onboardingStep = 'tailor_id_upload';
+
+  await ctx.reply('Portfolio image saved.\n\nNow upload your ID document as a photo or image document.');
+  return true;
+};
+
+export const handleTailorIdUpload = async (ctx) => {
+  const asset = extractTelegramAssetFromMessage(ctx);
+
+  if (!asset) {
+    await ctx.reply('Please send your ID as a photo or image document.');
+    return true;
+  }
+
+  ctx.session.onboardingDraft = {
+    ...(ctx.session.onboardingDraft ?? {}),
+    kyc: {
+      ...(ctx.session.onboardingDraft?.kyc ?? {}),
+      idDocument: asset,
+    },
+  };
+  ctx.session.onboardingStep = 'tailor_selfie_with_id_upload';
+
+  await ctx.reply(
+    'ID saved.\n\nUpload a selfie while holding the same ID.\nExample: a clear selfie showing your face and the same ID used above.',
+  );
+  return true;
+};
+
+export const handleTailorSelfieWithIdUpload = async (ctx) => {
+  const asset = extractTelegramAssetFromMessage(ctx);
+
+  if (!asset) {
+    await ctx.reply('Please send a selfie while holding the same uploaded ID as a photo or image document.');
+    return true;
+  }
+
+  ctx.session.onboardingDraft = {
+    ...(ctx.session.onboardingDraft ?? {}),
+    kyc: {
+      ...(ctx.session.onboardingDraft?.kyc ?? {}),
+      selfieWithId: asset,
+    },
+  };
+  ctx.session.onboardingStep = 'tailor_workplace_image_upload';
+
+  await ctx.reply(
+    'Selfie saved.\n\nUpload a clear workplace image for KYC.\nExample: your sewing space, tailoring shop front, or in-studio work area.',
+  );
+  return true;
+};
+
+export const handleTailorWorkplaceImageUpload = async (ctx) => {
+  const asset = extractTelegramAssetFromMessage(ctx);
+
+  if (!asset) {
+    await ctx.reply('Please send a workplace image as a photo or image document.');
+    return true;
+  }
+
+  ctx.session.onboardingDraft = {
+    ...(ctx.session.onboardingDraft ?? {}),
+    kyc: {
+      ...(ctx.session.onboardingDraft?.kyc ?? {}),
+      workplaceImage: asset,
+    },
+  };
 
   await finalizeTailorOnboarding(ctx);
   return true;
@@ -253,6 +499,10 @@ const finalizeTailorOnboarding = async (ctx) => {
   const draft = ctx.session.onboardingDraft ?? {};
 
   if (
+    !draft.onboardingAgreement?.requirementsAcknowledgedAt ||
+    !draft.onboardingAgreement?.termsReviewedAt ||
+    !draft.onboardingAgreement?.policiesAcceptedAt ||
+    !draft.onboardingAgreement?.pricingAcceptedAt ||
     !draft.fullName ||
     !draft.phoneNumber ||
     !draft.businessName ||
@@ -260,7 +510,13 @@ const finalizeTailorOnboarding = async (ctx) => {
     !draft.country ||
     !draft.city ||
     !draft.workAddress ||
-    !draft.specialties
+    !draft.specialties ||
+    !draft.budgetRange ||
+    !Array.isArray(draft.portfolio) ||
+    draft.portfolio.length === 0 ||
+    !draft.kyc?.idDocument?.telegramFileId ||
+    !draft.kyc?.selfieWithId?.telegramFileId ||
+    !draft.kyc?.workplaceImage?.telegramFileId
   ) {
     await startTailorOnboarding(ctx);
     return;
@@ -281,7 +537,10 @@ const finalizeTailorOnboarding = async (ctx) => {
       area: draft.area,
       workAddress: draft.workAddress,
       specialties: draft.specialties,
-      budgetRange: draft.budgetRange ?? { min: null, max: null, currency: 'NGN' },
+      budgetRange: draft.budgetRange,
+      portfolio: draft.portfolio,
+      kyc: draft.kyc,
+      onboardingAgreement: draft.onboardingAgreement,
     });
   } catch (error) {
     logger.error(
