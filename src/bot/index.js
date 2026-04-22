@@ -8,6 +8,7 @@ import { botLoggingMiddleware } from './middlewares/logging.middleware.js';
 import { botSessionMiddleware } from './middlewares/session.middleware.js';
 import { botAntiSpamMiddleware } from '../middlewares/bot-anti-spam.js';
 import { createBotRouter } from './router.js';
+import { syncBotCommands } from './services/command-sync.service.js';
 
 let botInstance;
 
@@ -37,6 +38,7 @@ export const getBot = () => {
 
 export const startBot = async () => {
   const bot = getBot();
+  await syncBotCommands(bot);
 
   if (env.BOT_MODE === BOT_MODES.POLLING) {
     await bot.launch({

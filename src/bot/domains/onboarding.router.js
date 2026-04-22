@@ -45,16 +45,6 @@ import {
 
 const onboardingRouter = new Composer();
 
-onboardingRouter.command('onboarding', async (ctx) => {
-  ctx.session.activeDomain = 'onboarding';
-  ctx.session.lastCommand = '/onboarding';
-
-  // Keep onboarding responses small and generic until full conversational flows are added.
-  await ctx.reply(
-    'Onboarding options are ready for affiliate, client, and tailor setup through the backend APIs.',
-  );
-});
-
 onboardingRouter.action('affiliate:onboarding:display-name:use-full-name', handleAffiliateUseFullName);
 onboardingRouter.action('affiliate:onboarding:restart', restartAffiliateOnboarding);
 onboardingRouter.action('client:onboarding:restart', restartClientOnboarding);

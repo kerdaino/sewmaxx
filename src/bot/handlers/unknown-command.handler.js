@@ -1,5 +1,3 @@
-import { KNOWN_COMMANDS } from '../constants.js';
-
 export const handleUnknownCommand = async (ctx) => {
-  await ctx.reply(`Unknown command. Try one of: ${KNOWN_COMMANDS.join(', ')}`);
+  await ctx.reply('Unknown command. Use /help to see the commands available for your role.');
 };
