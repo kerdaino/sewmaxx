@@ -9,6 +9,7 @@ import { assertValidObjectId } from '../utils/object-id.js';
 
 export const listRecentAffiliates = async ({ limit, requestId }) => {
   const affiliates = await AffiliateProfile.find({})
+    // Admin review lists intentionally opt into private fields that are hidden from normal query results.
     .select(
       'userId displayName fullName affiliateCode status verificationStatus onboardingCompletedAt createdAt +phoneNumber +kycDetails.legalPhoneNumber +kycDetails.country +kycDetails.city +kycDetails.idDocument.telegramFileId +kycDetails.selfieWithId.telegramFileId',
     )
@@ -227,6 +228,7 @@ const coordinatorStatusByRequestStatus = Object.freeze({
   completed: 'resolved',
 });
 
+// Request status changes are intentionally one-way around completion to preserve coordinator audit meaning.
 const allowedRequestStatusTransitions = Object.freeze({
   pending: ['reviewing', 'assigned', 'completed'],
   reviewing: ['assigned', 'completed'],

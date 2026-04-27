@@ -14,7 +14,8 @@ const PUBLIC_TAILOR_SEARCH_FIELDS = [
   'verificationStatus',
   'status',
 ].join(' ');
-const toPublicTailorSearchResult = ({ workAddress, ...tailor }) => tailor;
+// Public search results must not leak a tailor's exact work address or private review/KYC fields.
+const toPublicTailorSearchResult = ({ workAddress: _workAddress, ...tailor }) => tailor;
 
 export const getBudgetCompatibilityScore = (tailorBudgetRange, requestedBudgetRange) => {
   if (
@@ -60,6 +61,7 @@ export const calculateTailorMatchScore = ({ tailor, city, specialty, budgetRange
 };
 
 export const searchTailors = async ({ city, specialty, limit, budgetRange }) => {
+  // Escape the city before building a regex so search input cannot alter the Mongo query shape.
   const safeCityPattern = new RegExp(`^${escapeRegExp(city)}$`, 'i');
   const statusFilter = mongoose.trusted({ $in: ['active'] });
   const verificationStatusFilter = mongoose.trusted({ $in: ['approved'] });

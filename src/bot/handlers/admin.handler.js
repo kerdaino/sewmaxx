@@ -84,6 +84,7 @@ const sendAdminTailorAsset = async (ctx, { asset, caption, fallbackLabel }) => {
       },
       'Admin tailor asset send failed',
     );
+    // If Telegram cannot resend the upload, keep the review usable by showing the stored file reference.
     await ctx.reply(`${fallbackLabel}: ${fileReference}`);
   }
 };

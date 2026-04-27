@@ -17,6 +17,7 @@ const buildUpsertOptions = () => ({
   context: 'query',
 });
 
+// Uploads stay in Telegram storage; the app persists only file identifiers and metadata for review flows.
 const hasUploadedAsset = (asset) => Boolean(asset?.telegramFileId);
 
 const ensureAffiliateKycRequirements = (payload) => {
@@ -120,6 +121,7 @@ const createAffiliateProfile = async (userId, payload, completedAt) =>
     },
     buildUpsertOptions(),
   )
+    // KYC fields are select:false on the model, so onboarding explicitly includes them for the response.
     .select(
       '+phoneNumber +kycDetails.legalPhoneNumber +kycDetails.country +kycDetails.city +kycDetails.idDocument.telegramFileId +kycDetails.idDocument.telegramFileUniqueId +kycDetails.idDocument.telegramFileType +kycDetails.idDocument.mimeType +kycDetails.idDocument.fileName +kycDetails.idDocument.submittedAt +kycDetails.selfieWithId.telegramFileId +kycDetails.selfieWithId.telegramFileUniqueId +kycDetails.selfieWithId.telegramFileType +kycDetails.selfieWithId.mimeType +kycDetails.selfieWithId.fileName +kycDetails.selfieWithId.submittedAt',
     )

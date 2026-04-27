@@ -7,6 +7,7 @@ export const telegramWebhookAuthMiddleware = (req, res, next) => {
   const suppliedSecret = req.headers['x-telegram-bot-api-secret-token'];
   const expectedSecret = env.TELEGRAM_WEBHOOK_SECRET || '';
 
+  // Telegram signs webhook delivery with this shared secret; keep failures intentionally generic.
   if (typeof suppliedSecret !== 'string' || !expectedSecret || !secureCompare(suppliedSecret, expectedSecret)) {
     logger.warn({ requestId: req.id, event: 'telegram_webhook_unauthorized' }, 'Rejected Telegram webhook request');
     return res.status(StatusCodes.UNAUTHORIZED).json({

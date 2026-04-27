@@ -60,6 +60,7 @@ if (error) {
   );
 }
 
+// Production Telegram updates should arrive through HTTPS webhooks so the app can verify Telegram's secret header.
 if (value.NODE_ENV === 'production' && value.BOT_MODE !== 'webhook') {
   raiseConfigError('Production requires BOT_MODE=webhook for safer Telegram deployment.');
 }
