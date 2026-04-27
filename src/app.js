@@ -32,8 +32,31 @@ export const createApp = ({ telegramWebhookMiddleware } = {}) => {
   app.use(apiRateLimit);
 
   if (telegramWebhookMiddleware) {
-    app.use(env.TELEGRAM_WEBHOOK_PATH, telegramWebhookMiddleware);
+    app.post(env.TELEGRAM_WEBHOOK_PATH, telegramWebhookMiddleware);
   }
+
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: 'Sewmaxx bot service is running',
+      data: {
+        uptime: process.uptime(),
+        requestId: req.id,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  });
+  app.get('/health', (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: 'ok',
+      data: {
+        uptime: process.uptime(),
+        requestId: req.id,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  });
 
   app.use(env.API_PREFIX, apiRouter);
 

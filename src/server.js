@@ -9,6 +9,8 @@ import { telegramWebhookAuthMiddleware } from './middlewares/telegram-webhook-au
 import { getStartupErrorLogContext, serializeErrorForLog } from './utils/error-log.js';
 
 const bootstrap = async () => {
+  const port = env.PORT || 3000;
+  const host = '0.0.0.0';
   let startupStage = 'database';
 
   try {
@@ -42,11 +44,12 @@ const bootstrap = async () => {
   try {
     await new Promise((resolve, reject) => {
       server.once('error', reject);
-      server.listen(env.PORT, () => {
+      server.listen(port, host, () => {
         server.off('error', reject);
         logger.info(
           {
-            port: env.PORT,
+            port,
+            host,
             apiPrefix: env.API_PREFIX,
             botMode: env.BOT_MODE,
             nodeEnv: env.NODE_ENV,
