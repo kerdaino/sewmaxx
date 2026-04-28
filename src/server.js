@@ -32,14 +32,6 @@ const bootstrap = async () => {
   server.requestTimeout = 15_000;
   server.keepAliveTimeout = 5_000;
 
-  startupStage = 'bot';
-  try {
-    await startBot();
-  } catch (error) {
-    error.stage = startupStage;
-    throw error;
-  }
-
   startupStage = 'server_listen';
   try {
     await new Promise((resolve, reject) => {
@@ -54,11 +46,19 @@ const bootstrap = async () => {
             botMode: env.BOT_MODE,
             nodeEnv: env.NODE_ENV,
           },
-          'Sewmaxx server started',
+          `HTTP server listening on port ${port}`,
         );
         resolve();
       });
     });
+  } catch (error) {
+    error.stage = startupStage;
+    throw error;
+  }
+
+  startupStage = 'bot';
+  try {
+    await startBot();
   } catch (error) {
     error.stage = startupStage;
     throw error;
