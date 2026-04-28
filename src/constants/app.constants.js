@@ -15,3 +15,5 @@ export const BOT_MODES = Object.freeze({
   POLLING: 'polling',
   WEBHOOK: 'webhook',
 });
+
+export const TELEGRAM_WEBHOOK_ROUTE = '/webhook/telegram';

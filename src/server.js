@@ -8,6 +8,16 @@ import { logger } from './config/logger.js';
 import { telegramWebhookAuthMiddleware } from './middlewares/telegram-webhook-auth.js';
 import { getStartupErrorLogContext, serializeErrorForLog } from './utils/error-log.js';
 
+process.on('unhandledRejection', (error) => {
+  logger.error(
+    {
+      error: serializeErrorForLog(error),
+      event: 'unhandled_promise_rejection',
+    },
+    'Unhandled promise rejection',
+  );
+});
+
 const bootstrap = async () => {
   const port = env.PORT || 3000;
   const host = '0.0.0.0';
@@ -94,9 +104,6 @@ const bootstrap = async () => {
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
-  process.on('unhandledRejection', (error) => {
-    logger.error({ error: serializeErrorForLog(error) }, 'Unhandled promise rejection');
-  });
   process.on('uncaughtException', (error) => {
     logger.fatal({ error: serializeErrorForLog(error) }, 'Uncaught exception');
     process.exit(1);

@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import Joi from 'joi';
+import { TELEGRAM_WEBHOOK_ROUTE } from '../constants/app.constants.js';
 
 dotenv.config();
 
@@ -24,7 +25,7 @@ const envSchema = Joi.object({
   BOT_MODE: Joi.string().valid('polling', 'webhook').default('polling'),
   BOT_SESSION_TTL_SECONDS: Joi.number().integer().positive().default(1800),
   BOT_SESSION_MAX_SESSIONS: Joi.number().integer().min(100).max(50000).default(5000),
-  TELEGRAM_WEBHOOK_PATH: Joi.string().pattern(/^\/[A-Za-z0-9/_-]*$/).default('/telegram/webhook'),
+  TELEGRAM_WEBHOOK_PATH: Joi.string().pattern(/^\/[A-Za-z0-9/_-]*$/).default(TELEGRAM_WEBHOOK_ROUTE),
   TELEGRAM_WEBHOOK_SECRET: Joi.string().min(24).when('BOT_MODE', {
     is: 'webhook',
     then: Joi.required(),

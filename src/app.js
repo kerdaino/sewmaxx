@@ -1,7 +1,9 @@
 import express from 'express';
 import helmet from 'helmet';
 import { env } from './config/env.js';
+import { logger } from './config/logger.js';
 import { securityConfig } from './config/security.js';
+import { TELEGRAM_WEBHOOK_ROUTE } from './constants/app.constants.js';
 import { corsMiddleware } from './middlewares/cors.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { mongoSanitizeMiddleware } from './middlewares/mongo-sanitize.js';
@@ -32,7 +34,22 @@ export const createApp = ({ telegramWebhookMiddleware } = {}) => {
   app.use(apiRateLimit);
 
   if (telegramWebhookMiddleware) {
-    app.post(env.TELEGRAM_WEBHOOK_PATH, telegramWebhookMiddleware);
+    const webhookPaths = new Set([TELEGRAM_WEBHOOK_ROUTE, env.TELEGRAM_WEBHOOK_PATH]);
+
+    if (env.TELEGRAM_WEBHOOK_PATH !== TELEGRAM_WEBHOOK_ROUTE) {
+      logger.warn(
+        {
+          event: 'telegram_webhook_legacy_path_enabled',
+          configuredWebhookPath: env.TELEGRAM_WEBHOOK_PATH,
+          canonicalWebhookPath: TELEGRAM_WEBHOOK_ROUTE,
+        },
+        'Telegram webhook is also mounted at the canonical Render route',
+      );
+    }
+
+    for (const webhookPath of webhookPaths) {
+      app.post(webhookPath, telegramWebhookMiddleware);
+    }
   }
 
   app.get('/', (req, res) => {
