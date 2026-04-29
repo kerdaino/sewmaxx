@@ -1,6 +1,11 @@
 import { env } from '../../config/env.js';
 
-const adminIds = env.TELEGRAM_ADMIN_IDS
+const adminIds = [
+  env.ADMIN_TELEGRAM_IDS,
+  env.ADMIN_TELEGRAM_ID,
+  env.TELEGRAM_ADMIN_IDS,
+]
+  .join(',')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);

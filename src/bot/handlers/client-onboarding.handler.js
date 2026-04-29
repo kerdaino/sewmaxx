@@ -71,7 +71,7 @@ export const handleClientFullNameInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'client_phone_number';
 
-  await ctx.reply('What phone number should we save for manual coordination?');
+  await ctx.reply('What phone or WhatsApp contact should we save for manual coordination? Example: +2348012345678 or https://wa.me/233205245619');
   return true;
 };
 
@@ -89,7 +89,7 @@ export const handleClientPhoneNumberInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'client_country';
 
-  await ctx.reply('Which country are you in?');
+  await ctx.reply('Which country are you in? Examples: Nigeria, Ghana, Kenya');
   return true;
 };
 
@@ -107,7 +107,7 @@ export const handleClientCountryInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'client_city';
 
-  await ctx.reply('Which city are you in?');
+  await ctx.reply('Which city are you in? Examples: Lagos, Accra, Nairobi');
   return true;
 };
 

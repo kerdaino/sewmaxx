@@ -13,6 +13,7 @@ import { serializeErrorForLog } from '../../utils/error-log.js';
 import { ApiError } from '../../utils/api-error.js';
 import { isValidObjectId } from '../../utils/object-id.js';
 import { isTelegramAdmin } from '../services/admin-access.service.js';
+import { buildWhatsAppLink } from '../../utils/phone-contact.js';
 
 const ADMIN_LIST_LIMIT = 5;
 
@@ -53,6 +54,12 @@ const buildBudgetRangeLabel = (budgetRange) => {
   return `${budgetRange.currency || 'NGN'} ${budgetRange.min} - ${budgetRange.max}`;
 };
 const buildYesNoLabel = (value) => (value ? 'Yes' : 'No');
+const buildAdminContactLines = (phoneNumber) => {
+  const phone = phoneNumber || 'Not set';
+  const whatsappLink = buildWhatsAppLink(phoneNumber ?? '');
+
+  return [`Phone: ${phone}`, `WhatsApp: ${whatsappLink || 'Not available'}`];
+};
 
 const sendAdminTailorAsset = async (ctx, { asset, caption, fallbackLabel }) => {
   const fileReference = buildTailorFileReference(asset);
@@ -191,7 +198,7 @@ export const handleAdminTailorsCommand = async (ctx) => {
     const summary = tailors
       .map(
         (tailor, index) =>
-          `${index + 1}. ${tailor.publicName}\nID: ${tailor._id}\nCity: ${tailor.location?.city ?? 'N/A'}\nPhone: ${tailor.phoneNumber || 'Not set'}\nTelegram: ${tailor.userId?.telegramUsername ? `@${tailor.userId.telegramUsername}` : 'Not set'}\nService range: ${buildBudgetRangeLabel(tailor.budgetRange)}\nVerification: ${tailor.verificationStatus}\nStatus: ${tailor.status}\nPortfolio uploads: ${tailor.portfolio?.length ?? 0}\nID uploaded: ${buildYesNoLabel(tailor.kyc?.idDocument?.telegramFileId)}\nSelfie with ID uploaded: ${buildYesNoLabel(tailor.kyc?.selfieWithId?.telegramFileId)}\nWorkplace image uploaded: ${buildYesNoLabel(tailor.kyc?.workplaceImage?.telegramFileId)}`,
+          `${index + 1}. ${tailor.publicName}\nID: ${tailor._id}\nCity: ${tailor.location?.city ?? 'N/A'}\n${buildAdminContactLines(tailor.phoneNumber).join('\n')}\nTelegram: ${tailor.userId?.telegramUsername ? `@${tailor.userId.telegramUsername}` : 'Not set'}\nService range: ${buildBudgetRangeLabel(tailor.budgetRange)}\nVerification: ${tailor.verificationStatus}\nStatus: ${tailor.status}\nPortfolio uploads: ${tailor.portfolio?.length ?? 0}\nID uploaded: ${buildYesNoLabel(tailor.kyc?.idDocument?.telegramFileId)}\nSelfie with ID uploaded: ${buildYesNoLabel(tailor.kyc?.selfieWithId?.telegramFileId)}\nWorkplace image uploaded: ${buildYesNoLabel(tailor.kyc?.workplaceImage?.telegramFileId)}`,
       )
       .join('\n\n');
 
@@ -228,7 +235,7 @@ export const handleAdminAffiliatesCommand = async (ctx) => {
     const summary = affiliates
       .map(
         (affiliate, index) =>
-          `${index + 1}. ${affiliate.displayName}\nID: ${affiliate._id}\nAffiliate code: ${affiliate.affiliateCode}\nPhone: ${affiliate.phoneNumber || affiliate.kycDetails?.legalPhoneNumber || 'Not set'}\nTelegram: ${affiliate.userId?.telegramUsername ? `@${affiliate.userId.telegramUsername}` : 'Not set'}\nVerification: ${affiliate.verificationStatus}\nStatus: ${affiliate.status}\nCountry: ${affiliate.kycDetails?.country || affiliate.location?.country || 'Not set'}\nCity: ${affiliate.kycDetails?.city || affiliate.location?.city || 'Not set'}\nID uploaded: ${buildYesNoLabel(affiliate.kycDetails?.idDocument?.telegramFileId)}\nSelfie with ID uploaded: ${buildYesNoLabel(affiliate.kycDetails?.selfieWithId?.telegramFileId)}`,
+          `${index + 1}. ${affiliate.displayName}\nID: ${affiliate._id}\nAffiliate code: ${affiliate.affiliateCode}\n${buildAdminContactLines(affiliate.phoneNumber || affiliate.kycDetails?.legalPhoneNumber).join('\n')}\nTelegram: ${affiliate.userId?.telegramUsername ? `@${affiliate.userId.telegramUsername}` : 'Not set'}\nVerification: ${affiliate.verificationStatus}\nStatus: ${affiliate.status}\nCountry: ${affiliate.kycDetails?.country || affiliate.location?.country || 'Not set'}\nCity: ${affiliate.kycDetails?.city || affiliate.location?.city || 'Not set'}\nID uploaded: ${buildYesNoLabel(affiliate.kycDetails?.idDocument?.telegramFileId)}\nSelfie with ID uploaded: ${buildYesNoLabel(affiliate.kycDetails?.selfieWithId?.telegramFileId)}`,
       )
       .join('\n\n');
 
@@ -279,7 +286,7 @@ export const handleAdminTailorDetailCommand = async (ctx) => {
         `Full name: ${tailor.fullName}`,
         `Public name: ${tailor.publicName}`,
         `Business name: ${tailor.businessName}`,
-        `Phone: ${tailor.phoneNumber || 'Not set'}`,
+        ...buildAdminContactLines(tailor.phoneNumber),
         `Telegram: ${tailor.userId?.telegramUsername ? `@${tailor.userId.telegramUsername}` : 'Not set'}`,
         `Country: ${tailor.location?.country ?? 'Not set'}`,
         `City: ${tailor.location?.city ?? 'Not set'}`,
@@ -340,7 +347,7 @@ export const handleAdminAffiliateDetailCommand = async (ctx) => {
         `Full name: ${affiliate.fullName}`,
         `Display name: ${affiliate.displayName}`,
         `Affiliate code: ${affiliate.affiliateCode}`,
-        `Phone: ${affiliate.phoneNumber || affiliate.kycDetails?.legalPhoneNumber || 'Not set'}`,
+        ...buildAdminContactLines(affiliate.phoneNumber || affiliate.kycDetails?.legalPhoneNumber),
         `Telegram: ${affiliate.userId?.telegramUsername ? `@${affiliate.userId.telegramUsername}` : 'Not set'}`,
         `Country: ${affiliate.kycDetails?.country || affiliate.location?.country || 'Not set'}`,
         `City: ${affiliate.kycDetails?.city || affiliate.location?.city || 'Not set'}`,
@@ -480,7 +487,7 @@ export const handleAdminRequestsCommand = async (ctx) => {
     const summary = requests
       .map(
         (request, index) =>
-          `${index + 1}. ${request.style || request.outfitType}\nID: ${request._id}\nClient: ${request.clientProfileId?.fullName ?? 'Unknown'}\nPhone: ${request.clientProfileId?.phoneNumber || 'Not set'}\nTelegram: ${request.userId?.telegramUsername ? `@${request.userId.telegramUsername}` : 'Not set'}\nCity: ${request.location?.city ?? 'N/A'}\nStatus: ${request.status}\nCoordinator: ${request.coordinatorStatus}`,
+          `${index + 1}. ${request.style || request.outfitType}\nID: ${request._id}\nClient: ${request.clientProfileId?.fullName ?? 'Unknown'}\n${buildAdminContactLines(request.clientProfileId?.phoneNumber).join('\n')}\nTelegram: ${request.userId?.telegramUsername ? `@${request.userId.telegramUsername}` : 'Not set'}\nCity: ${request.location?.city ?? 'N/A'}\nStatus: ${request.status}\nCoordinator: ${request.coordinatorStatus}`,
       )
       .join('\n\n');
 

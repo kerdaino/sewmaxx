@@ -106,7 +106,7 @@ const promptTailorFullName = async (ctx, prefix = 'Let’s set up your tailor pr
 };
 
 const promptTailorCountry = async (ctx) => {
-  await ctx.reply('Which country is your tailoring base in?\nExample: Nigeria');
+  await ctx.reply('Which country is your tailoring base in?\nExamples: Nigeria, Ghana, Kenya');
 };
 
 const cancelTailorOnboarding = async (ctx, callbackMessage = 'Tailor onboarding reset') => {
@@ -222,7 +222,7 @@ export const handleTailorFullNameInput = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_phone_number';
 
   await ctx.reply(
-    'What phone number should we save for Sewmaxx coordination?\nExample: +234 801 234 5678',
+    'What phone or WhatsApp contact should we save for Sewmaxx coordination?\nExample: +2348012345678 or wa.me/233205245619',
   );
   return true;
 };
@@ -317,7 +317,7 @@ export const handleTailorCountryInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'tailor_city';
 
-  await ctx.reply('Which city do you work from?\nExample: Lagos');
+  await ctx.reply('Which city do you work from?\nExamples: Lagos, Accra, Nairobi');
   return true;
 };
 
@@ -337,7 +337,7 @@ export const handleTailorCityInput = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_work_address';
 
   await ctx.reply(
-    'What work address should we save for your tailoring base?\nExample: 12 Marina Road, Lagos Island',
+    'What work address should we save for your tailoring base?\nExample: 12 High Street, city center',
   );
   return true;
 };
@@ -378,7 +378,7 @@ export const handleTailorSpecialtiesInput = async (ctx) => {
   ctx.session.onboardingStep = 'tailor_budget_range';
 
   await ctx.reply(
-    'Enter your service price range in this format: 10000-50000\nExample: 15000-85000',
+    'Enter your service price range in your local currency, e.g. 10000-50000.',
   );
   return true;
 };

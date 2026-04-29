@@ -124,7 +124,7 @@ export const handleAffiliateUseFullName = async (ctx) => {
 
   await ctx.answerCbQuery();
   await ctx.reply(
-    'What phone number should we save for affiliate KYC?\nExample: +234 801 234 5678',
+    'What phone or WhatsApp contact should we save for affiliate KYC?\nExample: +2348012345678 or wa.me/233205245619',
     buildAffiliateKycKeyboard(),
   );
 };
@@ -144,7 +144,7 @@ export const handleAffiliateDisplayNameInput = async (ctx) => {
   ctx.session.onboardingStep = 'affiliate_phone_number';
 
   await ctx.reply(
-    'What phone number should we save for affiliate KYC?\nExample: +234 801 234 5678',
+    'What phone or WhatsApp contact should we save for affiliate KYC?\nExample: +2348012345678 or wa.me/233205245619',
     buildAffiliateKycKeyboard(),
   );
   return true;
@@ -164,7 +164,7 @@ export const handleAffiliatePhoneNumberInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'affiliate_country';
 
-  await ctx.reply('Which country should we save for your affiliate profile?\nExample: Nigeria');
+  await ctx.reply('Which country should we save for your affiliate profile?\nExamples: Nigeria, Ghana, Kenya');
   return true;
 };
 
@@ -182,7 +182,7 @@ export const handleAffiliateCountryInput = async (ctx) => {
   };
   ctx.session.onboardingStep = 'affiliate_city';
 
-  await ctx.reply('Which city should we save for your affiliate profile?\nExample: Lagos');
+  await ctx.reply('Which city should we save for your affiliate profile?\nExamples: Lagos, Accra, Nairobi');
   return true;
 };
 

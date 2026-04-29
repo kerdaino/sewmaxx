@@ -126,4 +126,29 @@ describe('search flow service', () => {
       }),
     );
   });
+
+  it('does not expose tailor contact details in public search summaries', async () => {
+    const { buildTailorResultSummary } = await import('../../src/bot/services/search-flow.service.js');
+
+    const summary = buildTailorResultSummary(
+      {
+        publicName: 'Ada Bridal',
+        businessName: 'Ada Stitches',
+        phoneNumber: '+2348012345678',
+        whatsapp: 'https://wa.me/2348012345678',
+        location: { city: 'Accra' },
+        specialties: ['bridal', 'dress'],
+        budgetRange: { min: 10000, max: 50000, currency: 'NGN' },
+        verificationStatus: 'approved',
+      },
+      1,
+    );
+
+    expect(summary).toContain('Ada Bridal');
+    expect(summary).toContain('Business: Ada Stitches');
+    expect(summary).not.toContain('Phone');
+    expect(summary).not.toContain('WhatsApp');
+    expect(summary).not.toContain('+2348012345678');
+    expect(summary).not.toContain('wa.me');
+  });
 });

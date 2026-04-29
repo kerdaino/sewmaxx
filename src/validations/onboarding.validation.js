@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { normalizePhoneContact } from '../utils/phone-contact.js';
 
 const telegramUserSchema = {
   telegramUserId: Joi.string().trim().max(40).required(),
@@ -8,7 +9,16 @@ const telegramUserSchema = {
 const requiredBudgetSchema = Joi.number().min(0).required();
 const phoneNumberSchema = Joi.string()
   .trim()
-  .pattern(/^\+?[0-9 ()-]{7,30}$/);
+  .max(120)
+  .custom((value, helpers) => {
+    const result = normalizePhoneContact(value);
+
+    if (!result.isValid) {
+      return helpers.error('string.pattern.base');
+    }
+
+    return result.value;
+  }, 'phone contact normalization');
 const uploadedAssetSchema = Joi.object({
   telegramFileId: Joi.string().trim().max(255).required(),
   telegramFileUniqueId: Joi.string().trim().allow('').max(255).default(''),

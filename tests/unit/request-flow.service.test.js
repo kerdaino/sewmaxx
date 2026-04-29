@@ -52,4 +52,34 @@ describe('request flow service', () => {
       }),
     );
   });
+
+  it('builds a request draft from completed search details', async () => {
+    const { buildRequestDraftFromSearch } = await import('../../src/bot/services/request-flow.service.js');
+
+    expect(
+      buildRequestDraftFromSearch({
+        searchDraft: {
+          style: 'bridal dress',
+          city: 'Accra',
+          budgetRange: { min: 10000, max: 50000, currency: 'NGN' },
+        },
+        clientProfile: {
+          location: {
+            country: 'Ghana',
+            area: 'Osu',
+          },
+        },
+      }),
+    ).toEqual({
+      outfitType: 'other',
+      style: 'bridal dress',
+      budgetRange: { min: 10000, max: 50000, currency: 'NGN' },
+      country: 'Ghana',
+      location: {
+        country: 'Ghana',
+        city: 'Accra',
+        area: 'Osu',
+      },
+    });
+  });
 });

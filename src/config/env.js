@@ -46,6 +46,8 @@ const envSchema = Joi.object({
   TAILOR_TERMS_PDF_URL: Joi.string().uri().allow('').default(''),
   ADMIN_DEV_TOKEN: Joi.string().min(24).allow('').optional(),
   ADMIN_ALLOWED_IPS: Joi.string().allow('').default(''),
+  ADMIN_TELEGRAM_ID: Joi.string().allow('').default(''),
+  ADMIN_TELEGRAM_IDS: Joi.string().allow('').default(''),
   TELEGRAM_ADMIN_IDS: Joi.string().allow('').default(''),
 }).unknown();
 

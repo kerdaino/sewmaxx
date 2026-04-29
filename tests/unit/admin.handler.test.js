@@ -35,7 +35,7 @@ describe('admin handler private review delivery', () => {
       fullName: 'Ada Tailor',
       publicName: 'Ada Bridal',
       businessName: 'Ada Stitches',
-      phoneNumber: '08012345678',
+      phoneNumber: '+2348012345678',
       userId: { telegramUsername: 'ada_tailor' },
       location: { country: 'Nigeria', city: 'Lagos' },
       workAddress: '12 Marina',
@@ -70,6 +70,7 @@ describe('admin handler private review delivery', () => {
     await handleAdminTailorDetailCommand(ctx);
 
     expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Tailor private review'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('WhatsApp: https://wa.me/2348012345678'));
     expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Service range: NGN 15000 - 85000'));
     expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Requirements acknowledged: Yes'));
     expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Terms PDF: https://example.com/terms.pdf'));
@@ -149,5 +150,21 @@ describe('admin handler private review delivery', () => {
         caption: expect.stringContaining('Affiliate selfie with ID'),
       }),
     );
+  });
+
+  it('blocks non-admin users from admin private review commands', async () => {
+    const { handleAdminTailorDetailCommand } = await import('../../src/bot/handlers/admin.handler.js');
+    isTelegramAdmin.mockReturnValue(false);
+
+    const ctx = {
+      from: { id: 101 },
+      message: { text: '/admin_tailor_detail 507f1f77bcf86cd799439011' },
+      reply: vi.fn(),
+    };
+
+    await handleAdminTailorDetailCommand(ctx);
+
+    expect(ctx.reply).toHaveBeenCalledWith('Unauthorized.');
+    expect(getAdminTailorReview).not.toHaveBeenCalled();
   });
 });

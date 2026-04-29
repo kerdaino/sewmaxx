@@ -1,11 +1,8 @@
 import Joi from 'joi';
 import { sanitizeText } from '../../utils/sanitize.js';
+import { normalizePhoneContact } from '../../utils/phone-contact.js';
 
 const fullNameSchema = Joi.string().trim().min(2).max(120).required();
-const phoneNumberSchema = Joi.string()
-  .trim()
-  .pattern(/^\+?[0-9 ()-]{7,30}$/)
-  .required();
 const countrySchema = Joi.string().trim().min(2).max(80).required();
 const citySchema = Joi.string().trim().min(2).max(80).required();
 const areaSchema = Joi.string().trim().min(2).max(120).required();
@@ -35,13 +32,18 @@ export const validateClientFullName = (value) =>
     120,
   );
 
-export const validateClientPhoneNumber = (value) =>
-  validateField(
-    phoneNumberSchema,
-    value,
-    'Please enter a valid phone number using 7 to 30 characters.',
-    30,
-  );
+export const validateClientPhoneNumber = (value) => {
+  const result = normalizePhoneContact(value);
+
+  if (!result.isValid) {
+    return {
+      isValid: false,
+      message: 'Please enter a valid phone number or WhatsApp wa.me link.',
+    };
+  }
+
+  return result;
+};
 
 export const validateClientCountry = (value) =>
   validateField(

@@ -10,7 +10,7 @@ import {
   getMatchBatch,
   SEARCH_BATCH_SIZE,
 } from '../services/search-flow.service.js';
-import { startRequestPosting } from './request-post.handler.js';
+import { startRequestPostingFromSearch } from './request-post.handler.js';
 import {
   validateSearchBudget,
   validateSearchLocation,
@@ -83,7 +83,7 @@ export const handleSearchStyleInput = async (ctx) => {
   };
   ctx.session.searchStep = 'search_location';
 
-  await ctx.reply('Which city should we search in?');
+  await ctx.reply('Which city should we search in? Examples: Lagos, Accra, Nairobi');
   return true;
 };
 
@@ -105,7 +105,7 @@ export const handleSearchLocationInput = async (ctx) => {
   };
   ctx.session.searchStep = 'search_budget';
 
-  await ctx.reply('What budget range should we use? Example: 10000-50000');
+  await ctx.reply('Enter your budget range in your local currency, e.g. 10000-50000.');
   return true;
 };
 
@@ -159,9 +159,9 @@ export const handleSearchNextSteps = async (ctx) => {
 
   await ctx.answerCbQuery();
   await ctx.reply(
-    'You can post a request now if you want Sewmaxx coordinators to handle manual matching and follow-up for this need.',
+    'You can publish a request from this search. I will reuse the details you already entered and ask only for anything missing.',
   );
-  await startRequestPosting(ctx);
+  await startRequestPostingFromSearch(ctx);
 };
 
 const finalizeSearch = async (ctx) => {

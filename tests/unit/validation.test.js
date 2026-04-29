@@ -17,6 +17,7 @@ import {
   validateTailorPhoneNumber,
 } from '../../src/bot/validators/tailor-onboarding.validator.js';
 import { validateClientPhoneNumber as validateBotClientPhoneNumber } from '../../src/bot/validators/client-onboarding.validator.js';
+import { buildWhatsAppLink, normalizePhoneContact } from '../../src/utils/phone-contact.js';
 
 describe('validation logic', () => {
   it('sanitizes and validates affiliate onboarding payloads', () => {
@@ -167,7 +168,36 @@ describe('validation logic', () => {
     const tailorResult = validateTailorPhoneNumber('0801-234-5678');
 
     expect(clientResult.isValid).toBe(true);
+    expect(clientResult.value).toBe('+2348012345678');
     expect(tailorResult.isValid).toBe(true);
+    expect(tailorResult.value).toBe('08012345678');
+  });
+
+  it('accepts and normalizes WhatsApp wa.me contact links', () => {
+    expect(normalizePhoneContact('https://wa.me/233205245619')).toEqual({
+      isValid: true,
+      value: '+233205245619',
+    });
+    expect(normalizePhoneContact('wa.me/254712345678')).toEqual({
+      isValid: true,
+      value: '+254712345678',
+    });
+    expect(buildWhatsAppLink('+233205245619')).toBe('https://wa.me/233205245619');
+    expect(buildWhatsAppLink('08012345678')).toBe('');
+  });
+
+  it('normalizes API onboarding phone contacts before storage', () => {
+    const payload = validatePayload(clientOnboardingSchema, {
+      telegramUserId: '12345',
+      telegramUsername: 'client_user',
+      fullName: 'Ada Client',
+      phoneNumber: 'https://wa.me/233205245619',
+      country: 'Ghana',
+      city: 'Accra',
+      area: 'Osu',
+    });
+
+    expect(payload.phoneNumber).toBe('+233205245619');
   });
 
   it('accepts valid search budget ranges', () => {

@@ -62,7 +62,7 @@ The application validates environment variables at startup. See `.env.example` f
 | `TELEGRAM_WEBHOOK_PATH` | Express route path for Telegram webhooks. |
 | `TELEGRAM_WEBHOOK_SECRET` | Secret checked against Telegram webhook requests. |
 | `TELEGRAM_WEBHOOK_URL` | Public HTTPS webhook URL, required in webhook mode. |
-| `TELEGRAM_ADMIN_IDS` | Comma-separated Telegram user IDs allowed to use bot admin commands. |
+| `ADMIN_TELEGRAM_IDS` | Comma-separated Telegram user IDs allowed to use bot admin commands. `TELEGRAM_ADMIN_IDS` and `ADMIN_TELEGRAM_ID` are still accepted for compatibility. |
 | `LOG_LEVEL` | Pino log level. |
 | `RATE_LIMIT_WINDOW_MS` | API rate limit window. |
 | `RATE_LIMIT_MAX_REQUESTS` | Maximum API requests per rate limit window. |
@@ -138,7 +138,7 @@ Polling mode is intended for local development. Webhook mode is required in prod
 
 ## Admin Commands
 
-Telegram admin commands are limited to user IDs configured in `TELEGRAM_ADMIN_IDS`.
+Telegram admin commands are limited to user IDs configured in `ADMIN_TELEGRAM_IDS`.
 
 - `/admin_tailors` lists recent tailor signups.
 - `/admin_tailor_detail <id>` opens the private tailor review view and sends submitted KYC/portfolio files.

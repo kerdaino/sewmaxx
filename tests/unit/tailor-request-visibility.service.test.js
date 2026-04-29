@@ -52,4 +52,35 @@ describe('tailor request visibility service', () => {
     expect(summary).toContain('Location: Lagos, Lekki');
     expect(summary).toContain('Due date: 2099-02-01');
   });
+
+  it('does not expose client contact details in public tailor request summaries', () => {
+    const summary = buildTailorRequestSummary(
+      {
+        _id: 'request-1',
+        outfitType: 'dress',
+        style: 'wedding dress',
+        clientPhoneNumber: '+233205245619',
+        whatsapp: 'https://wa.me/233205245619',
+        location: {
+          city: 'Accra',
+          area: 'Osu',
+          country: 'Ghana',
+        },
+        budgetRange: {
+          min: 10000,
+          max: 50000,
+          currency: 'NGN',
+        },
+        dueDate: '2099-03-01T00:00:00.000Z',
+        status: 'pending',
+      },
+      1,
+    );
+
+    expect(summary).toContain('1. wedding dress');
+    expect(summary).not.toContain('Phone');
+    expect(summary).not.toContain('WhatsApp');
+    expect(summary).not.toContain('+233205245619');
+    expect(summary).not.toContain('wa.me');
+  });
 });

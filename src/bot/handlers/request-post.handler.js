@@ -3,7 +3,12 @@ import {
   buildRequestRestartKeyboard,
   buildRequestSummaryKeyboard,
 } from '../keyboards/request-post.keyboard.js';
-import { buildRequestSummary, ensureClientCanPostRequest, publishRequestPost } from '../services/request-flow.service.js';
+import {
+  buildRequestDraftFromSearch,
+  buildRequestSummary,
+  ensureClientCanPostRequest,
+  publishRequestPost,
+} from '../services/request-flow.service.js';
 import {
   validateRequestBudget,
   validateRequestDueDate,
@@ -22,6 +27,39 @@ const resetRequestDraft = (ctx) => {
   ctx.session.requestStep = 'request_outfit_type';
   ctx.session.requestDraft = {};
   ctx.session.requestPublishInFlight = false;
+};
+
+const getBudgetPrompt = () => 'Enter your budget range in your local currency, e.g. 10000-50000.';
+
+const promptForNextMissingRequestField = async (ctx) => {
+  const draft = ctx.session.requestDraft ?? {};
+
+  if (!draft.outfitType || !draft.style) {
+    ctx.session.requestStep = 'request_outfit_type';
+    await ctx.reply('What outfit type would you like to request?', buildRequestOutfitTypeKeyboard());
+    return;
+  }
+
+  if (!draft.budgetRange) {
+    ctx.session.requestStep = 'request_budget';
+    await ctx.reply(getBudgetPrompt());
+    return;
+  }
+
+  if (!draft.location) {
+    ctx.session.requestStep = 'request_location';
+    await ctx.reply('What location should we use for this request? Example: Accra, Osu');
+    return;
+  }
+
+  if (!draft.dueDate) {
+    ctx.session.requestStep = 'request_due_date';
+    await ctx.reply('What is the due date? Use YYYY-MM-DD.');
+    return;
+  }
+
+  ctx.session.requestStep = 'request_confirm';
+  await ctx.reply(buildRequestSummary(draft), buildRequestSummaryKeyboard());
 };
 
 const buildRequestPublishFingerprint = (draft) =>
@@ -56,6 +94,31 @@ export const startRequestPosting = async (ctx) => {
   await ctx.reply('What outfit type would you like to request?', buildRequestOutfitTypeKeyboard());
 };
 
+export const startRequestPostingFromSearch = async (ctx) => {
+  if (!(await ensureBotRoleAccess(ctx, 'client'))) {
+    return;
+  }
+
+  const telegramUserId = String(ctx.from?.id ?? '');
+  const eligibility = await ensureClientCanPostRequest(telegramUserId);
+
+  if (!eligibility.canPost) {
+    await ctx.reply(
+      'Request posting is available after client onboarding. Use /client to complete your profile first.',
+      buildRequestRestartKeyboard(),
+    );
+    return;
+  }
+
+  resetRequestDraft(ctx);
+  ctx.session.requestDraft = buildRequestDraftFromSearch({
+    searchDraft: ctx.session.searchDraft ?? {},
+    clientProfile: eligibility.clientProfile,
+  });
+
+  await promptForNextMissingRequestField(ctx);
+};
+
 export const restartRequestPosting = async (ctx) => {
   if (!(await ensureBotRoleAccess(ctx, 'client', { sendReplyMessage: !ctx.callbackQuery }))) {
     return;
@@ -66,7 +129,7 @@ export const restartRequestPosting = async (ctx) => {
 
   resetRequestDraft(ctx);
   ctx.session.requestDraft = {
-    country: eligibility.clientProfile?.location.country ?? 'Nigeria',
+    country: eligibility.clientProfile?.location.country ?? '',
   };
 
   if (ctx.answerCbQuery) {
@@ -107,7 +170,7 @@ export const handleRequestOutfitSelection = async (ctx) => {
     return;
   }
 
-  await ctx.reply('What budget range should we use? Example: 10000-50000');
+  await promptForNextMissingRequestField(ctx);
 };
 
 export const handleRequestOtherStyleInput = async (ctx) => {
@@ -126,9 +189,7 @@ export const handleRequestOtherStyleInput = async (ctx) => {
     ...(ctx.session.requestDraft ?? {}),
     style: result.value,
   };
-  ctx.session.requestStep = 'request_budget';
-
-  await ctx.reply('What budget range should we use? Example: 10000-50000');
+  await promptForNextMissingRequestField(ctx);
   return true;
 };
 
@@ -148,9 +209,7 @@ export const handleRequestBudgetInput = async (ctx) => {
     ...(ctx.session.requestDraft ?? {}),
     budgetRange: result.value,
   };
-  ctx.session.requestStep = 'request_location';
-
-  await ctx.reply('What location should we use for this request?');
+  await promptForNextMissingRequestField(ctx);
   return true;
 };
 
@@ -171,7 +230,7 @@ export const handleRequestLocationInput = async (ctx) => {
   ctx.session.requestDraft = {
     ...(ctx.session.requestDraft ?? {}),
     location: {
-      country: ctx.session.requestDraft?.country ?? 'Nigeria',
+      country: ctx.session.requestDraft?.country ?? '',
       city: city.trim(),
       area: rest.join(',').trim() || result.value,
     },
@@ -227,7 +286,7 @@ export const handleRequestEdit = async (ctx) => {
 
   if (field === 'budget') {
     ctx.session.requestStep = 'request_budget';
-    await ctx.reply('Enter the budget again. Example: 10000-50000');
+    await ctx.reply(getBudgetPrompt());
     return;
   }
 

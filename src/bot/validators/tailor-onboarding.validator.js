@@ -1,6 +1,7 @@
 import Joi from 'joi';
 import { sanitizeText } from '../../utils/sanitize.js';
 import { parseBudgetRangeInput } from '../utils/parse-budget-range.js';
+import { normalizePhoneContact } from '../../utils/phone-contact.js';
 
 const validateField = (schema, value, message, maxLength) => {
   const candidate = sanitizeText(value, maxLength);
@@ -27,16 +28,18 @@ export const validateTailorFullName = (value) =>
     120,
   );
 
-export const validateTailorPhoneNumber = (value) =>
-  validateField(
-    Joi.string()
-      .trim()
-      .pattern(/^\+?[0-9 ()-]{7,30}$/)
-      .required(),
-    value,
-    'Please enter a valid phone number using 7 to 30 characters.',
-    30,
-  );
+export const validateTailorPhoneNumber = (value) => {
+  const result = normalizePhoneContact(value);
+
+  if (!result.isValid) {
+    return {
+      isValid: false,
+      message: 'Please enter a valid phone number or WhatsApp wa.me link.',
+    };
+  }
+
+  return result;
+};
 
 export const validateTailorBusinessName = (value) =>
   validateField(
@@ -106,14 +109,14 @@ export const validateTailorBudgetRange = (value) => {
   if (!result.isValid && result.reason === 'format') {
     return {
       isValid: false,
-      message: 'Enter your price range in this format: 10000-50000.',
+      message: 'Enter your price range in your local currency, e.g. 10000-50000.',
     };
   }
 
   if (!result.isValid && result.reason === 'too_large') {
     return {
       isValid: false,
-      message: 'That price range looks too large. Enter a realistic range like 10000-50000.',
+      message: 'That price range looks too large. Enter a realistic local-currency range like 10000-50000.',
     };
   }
 

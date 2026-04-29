@@ -41,14 +41,14 @@ export const validateSearchBudget = (value) => {
   if (!result.isValid && result.reason === 'format') {
     return {
       isValid: false,
-      message: 'Enter a budget like 10000-50000.',
+      message: 'Enter your budget range in your local currency, e.g. 10000-50000.',
     };
   }
 
   if (!result.isValid && result.reason === 'too_large') {
     return {
       isValid: false,
-      message: 'Budget range is too large. Enter a realistic amount like 10000-50000.',
+      message: 'Budget range is too large. Enter a realistic local-currency amount like 10000-50000.',
     };
   }
 

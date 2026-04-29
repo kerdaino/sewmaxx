@@ -40,6 +40,21 @@ export const publishRequestPost = async ({
     dueDate,
   });
 
+export const buildRequestDraftFromSearch = ({ searchDraft = {}, clientProfile }) => ({
+  outfitType: searchDraft.style ? 'other' : '',
+  style: searchDraft.style ?? '',
+  budgetRange: searchDraft.budgetRange ?? null,
+  country: clientProfile?.location?.country ?? '',
+  location:
+    searchDraft.city && clientProfile?.location?.area
+      ? {
+          country: clientProfile.location.country,
+          city: searchDraft.city,
+          area: clientProfile.location.area,
+        }
+      : null,
+});
+
 export const buildRequestSummary = (draft) => {
   const outfitLabel = draft.outfitType === 'other' ? draft.style : draft.outfitType;
 
