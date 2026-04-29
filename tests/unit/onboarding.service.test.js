@@ -175,6 +175,55 @@ describe('onboarding service', () => {
     );
   });
 
+  it('normalizes client WhatsApp contact links before storing the profile', async () => {
+    const { onboardClient } = await import('../../src/services/onboarding.service.js');
+
+    clientProfileFindOneAndUpdate.mockReturnValue({
+      lean: vi.fn().mockResolvedValue({ _id: 'client-1' }),
+    });
+
+    await onboardClient({
+      telegramUserId: '123',
+      telegramUsername: 'client_user',
+      fullName: 'Ada Client',
+      phoneNumber: 'wa.me/233205245619',
+      country: 'Ghana',
+      city: 'Accra',
+      area: 'Osu',
+    });
+
+    expect(clientProfileFindOneAndUpdate).toHaveBeenCalledWith(
+      { userId: 'user-1' },
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          phoneNumber: '+233205245619',
+        }),
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('rejects client onboarding when contact is not a phone number or WhatsApp link', async () => {
+    const { onboardClient } = await import('../../src/services/onboarding.service.js');
+
+    await expect(
+      onboardClient({
+        telegramUserId: '123',
+        telegramUsername: 'client_user',
+        fullName: 'Ada Client',
+        phoneNumber: 'message me later',
+        country: 'Nigeria',
+        city: 'Lagos',
+        area: 'Lekki',
+      }),
+    ).rejects.toMatchObject({
+      message: 'Valid client phone or WhatsApp contact is required',
+    });
+
+    expect(userFindOneAndUpdate).not.toHaveBeenCalled();
+    expect(clientProfileFindOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it('links a client onboarding record to a referral and style preferences when provided', async () => {
     const { onboardClient } = await import('../../src/services/onboarding.service.js');
 

@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "lint": "eslint .",
     "check": "node --check src/server.js",
+    "cleanup:test-data": "node scripts/cleanup-test-data.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

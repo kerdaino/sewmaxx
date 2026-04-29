@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAdminTailorReview = vi.fn();
 const getAdminAffiliateReview = vi.fn();
+const listRecentClientRequests = vi.fn();
 const isTelegramAdmin = vi.fn();
 
 vi.mock('../../src/services/admin.service.js', () => ({
   getAdminAffiliateReview,
   getAdminTailorReview,
   listRecentAffiliates: vi.fn(),
-  listRecentClientRequests: vi.fn(),
+  listRecentClientRequests,
   listRecentTailorSignups: vi.fn(),
   updateAffiliateApprovalStatus: vi.fn(),
   updateRequestManagementStatus: vi.fn(),
@@ -23,6 +24,7 @@ describe('admin handler private review delivery', () => {
   beforeEach(() => {
     getAdminTailorReview.mockReset();
     getAdminAffiliateReview.mockReset();
+    listRecentClientRequests.mockReset();
     isTelegramAdmin.mockReset();
     isTelegramAdmin.mockReturnValue(true);
   });
@@ -150,6 +152,38 @@ describe('admin handler private review delivery', () => {
         caption: expect.stringContaining('Affiliate selfie with ID'),
       }),
     );
+  });
+
+  it('shows client contact details in the admin requests command', async () => {
+    const { handleAdminRequestsCommand } = await import('../../src/bot/handlers/admin.handler.js');
+
+    listRecentClientRequests.mockResolvedValue([
+      {
+        _id: 'request-1',
+        outfitType: 'dress',
+        style: 'bridal dress',
+        clientProfileId: {
+          fullName: 'Ada Client',
+          phoneNumber: '+233205245619',
+        },
+        userId: { telegramUsername: 'ada_client' },
+        location: { city: 'Accra' },
+        status: 'pending',
+        coordinatorStatus: 'unreviewed',
+      },
+    ]);
+
+    const ctx = {
+      from: { id: 99 },
+      message: { text: '/admin_requests' },
+      reply: vi.fn(),
+    };
+
+    await handleAdminRequestsCommand(ctx);
+
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Client: Ada Client'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Phone: +233205245619'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('WhatsApp: https://wa.me/233205245619'));
   });
 
   it('blocks non-admin users from admin private review commands', async () => {

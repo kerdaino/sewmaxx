@@ -104,6 +104,37 @@ Run tests in watch mode:
 npm run test:watch
 ```
 
+### One-Time Test Data Cleanup
+
+Use the internal cleanup script only before launch or while cleaning a development database. It is not exposed through the public API, bot commands, or an admin dashboard.
+
+The script refuses to run when `NODE_ENV=production`. It also refuses database names that do not look like dev/test/local/sandbox/staging unless you explicitly allow the exact database name.
+
+Always run a dry run first with known test selectors:
+
+```bash
+npm run cleanup:test-data -- --telegram-ids=111111,222222
+```
+
+You can also select records by a deliberate test name pattern or internal test flag:
+
+```bash
+npm run cleanup:test-data -- --name-pattern="^(test|demo|qa)[ -_]"
+npm run cleanup:test-data -- --test-flag=test_data
+```
+
+Review the printed database name, selectors, counts, and IDs. To delete only the printed test records, rerun with the explicit confirmation phrase:
+
+```bash
+npm run cleanup:test-data -- --telegram-ids=111111,222222 --execute --confirm=DELETE_SEWMAXX_TEST_DATA
+```
+
+If your verified development database name does not contain `dev`, `test`, `local`, `sandbox`, or `staging`, allow that exact name for this run:
+
+```bash
+npm run cleanup:test-data -- --telegram-ids=111111 --allow-db-name=sewmaxx_launch_prep
+```
+
 ## API Overview
 
 Base prefix defaults to `/api/v1`.

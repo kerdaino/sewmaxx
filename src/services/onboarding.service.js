@@ -8,6 +8,7 @@ import { logger } from '../config/logger.js';
 import { ApiError } from '../utils/api-error.js';
 import { trackReferral } from './referral.service.js';
 import { generateReferralCode } from '../utils/referral-code.js';
+import { normalizePhoneContact } from '../utils/phone-contact.js';
 
 const buildUpsertOptions = () => ({
   new: true,
@@ -212,10 +213,16 @@ export const onboardAffiliate = async (payload) => {
 };
 
 export const onboardClient = async (payload) => {
+  const contact = normalizePhoneContact(payload.phoneNumber ?? '');
+
+  if (!contact.isValid) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Valid client phone or WhatsApp contact is required');
+  }
+
   const user = await upsertUser(payload, 'client');
   const clientUpdate = {
     fullName: payload.fullName,
-    phoneNumber: payload.phoneNumber ?? '',
+    phoneNumber: contact.value,
     location: {
       city: payload.city,
       state: payload.state ?? '',
