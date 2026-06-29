@@ -73,7 +73,7 @@ export const validateRequestDueDate = (value) => {
   if (error) {
     return {
       isValid: false,
-      message: 'Enter the due date in YYYY-MM-DD format.',
+      message: 'Enter the due date in YYYY-MM-DD format, e.g. 2026-06-26.',
     };
   }
 

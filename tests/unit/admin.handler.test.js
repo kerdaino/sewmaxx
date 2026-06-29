@@ -167,7 +167,9 @@ describe('admin handler private review delivery', () => {
           phoneNumber: '+233205245619',
         },
         userId: { telegramUsername: 'ada_client' },
-        location: { city: 'Accra' },
+        location: { country: 'Ghana', city: 'Accra', area: 'Osu' },
+        budgetRange: { min: 10000, max: 50000, currency: 'GHS' },
+        dueDate: new Date('2026-07-26T00:00:00.000Z'),
         status: 'pending',
         coordinatorStatus: 'unreviewed',
       },
@@ -184,6 +186,14 @@ describe('admin handler private review delivery', () => {
     expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Client: Ada Client'));
     expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Phone: +233205245619'));
     expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('WhatsApp: https://wa.me/233205245619'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Outfit: dress'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Style: bridal dress'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Telegram: @ada_client'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Location: Ghana, Accra, Osu'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Budget: GHS 10000 - 50000'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Due date: 2026-07-26'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Status: pending'));
+    expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('Coordinator: unreviewed'));
   });
 
   it('blocks non-admin users from admin private review commands', async () => {

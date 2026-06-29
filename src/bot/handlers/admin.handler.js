@@ -53,6 +53,15 @@ const buildBudgetRangeLabel = (budgetRange) => {
 
   return `${budgetRange.currency || 'NGN'} ${budgetRange.min} - ${budgetRange.max}`;
 };
+
+const buildDateLabel = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+
+  return Number.isNaN(date.getTime()) ? 'Not set' : date.toISOString().slice(0, 10);
+};
+
+const buildLocationLabel = (location) =>
+  [location?.country, location?.city, location?.area].filter(Boolean).join(', ') || 'Not set';
 const buildYesNoLabel = (value) => (value ? 'Yes' : 'No');
 const buildAdminContactLines = (phoneNumber) => {
   const phone = phoneNumber || 'Not set';
@@ -487,7 +496,7 @@ export const handleAdminRequestsCommand = async (ctx) => {
     const summary = requests
       .map(
         (request, index) =>
-          `${index + 1}. ${request.style || request.outfitType}\nID: ${request._id}\nClient: ${request.clientProfileId?.fullName ?? 'Unknown'}\n${buildAdminContactLines(request.clientProfileId?.phoneNumber).join('\n')}\nTelegram: ${request.userId?.telegramUsername ? `@${request.userId.telegramUsername}` : 'Not set'}\nCity: ${request.location?.city ?? 'N/A'}\nStatus: ${request.status}\nCoordinator: ${request.coordinatorStatus}`,
+          `${index + 1}. ${request.style || request.outfitType}\nID: ${request._id}\nOutfit: ${request.outfitType || 'Not set'}\nStyle: ${request.style || 'Not set'}\nClient: ${request.clientProfileId?.fullName ?? 'Unknown'}\n${buildAdminContactLines(request.clientProfileId?.phoneNumber).join('\n')}\nTelegram: ${request.userId?.telegramUsername ? `@${request.userId.telegramUsername}` : 'Not set'}\nLocation: ${buildLocationLabel(request.location)}\nBudget: ${buildBudgetRangeLabel(request.budgetRange)}\nDue date: ${buildDateLabel(request.dueDate)}\nStatus: ${request.status}\nCoordinator: ${request.coordinatorStatus}`,
       )
       .join('\n\n');
 

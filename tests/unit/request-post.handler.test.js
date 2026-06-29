@@ -96,7 +96,9 @@ describe('request post handler', () => {
 
     expect(ctx.session.requestFlow).toBe('client_request');
     expect(ctx.session.requestStep).toBe('request_due_date');
-    expect(ctx.reply).toHaveBeenCalledWith('What is the due date? Use YYYY-MM-DD.');
+    expect(ctx.reply).toHaveBeenCalledWith(
+      'What is the due date? Use YYYY-MM-DD, e.g. 2026-06-26.',
+    );
   });
 
   it('skips already-seeded location after a missing budget is provided', async () => {
@@ -123,6 +125,8 @@ describe('request post handler', () => {
     await handleRequestBudgetInput(ctx);
 
     expect(ctx.session.requestStep).toBe('request_due_date');
-    expect(ctx.reply).toHaveBeenCalledWith('What is the due date? Use YYYY-MM-DD.');
+    expect(ctx.reply).toHaveBeenCalledWith(
+      'What is the due date? Use YYYY-MM-DD, e.g. 2026-06-26.',
+    );
   });
 });

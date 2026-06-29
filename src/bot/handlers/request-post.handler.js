@@ -30,6 +30,7 @@ const resetRequestDraft = (ctx) => {
 };
 
 const getBudgetPrompt = () => 'Enter your budget range in your local currency, e.g. 10000-50000.';
+const getDueDatePrompt = () => 'What is the due date? Use YYYY-MM-DD, e.g. 2026-06-26.';
 
 const promptForNextMissingRequestField = async (ctx) => {
   const draft = ctx.session.requestDraft ?? {};
@@ -54,7 +55,7 @@ const promptForNextMissingRequestField = async (ctx) => {
 
   if (!draft.dueDate) {
     ctx.session.requestStep = 'request_due_date';
-    await ctx.reply('What is the due date? Use YYYY-MM-DD.');
+    await ctx.reply(getDueDatePrompt());
     return;
   }
 
@@ -237,7 +238,7 @@ export const handleRequestLocationInput = async (ctx) => {
   };
   ctx.session.requestStep = 'request_due_date';
 
-  await ctx.reply('What is the due date? Use YYYY-MM-DD.');
+  await ctx.reply(getDueDatePrompt());
   return true;
 };
 
@@ -298,7 +299,7 @@ export const handleRequestEdit = async (ctx) => {
 
   if (field === 'due_date') {
     ctx.session.requestStep = 'request_due_date';
-    await ctx.reply('Enter the due date again in YYYY-MM-DD format.');
+    await ctx.reply('Enter the due date again. Use YYYY-MM-DD, e.g. 2026-06-26.');
   }
 };
 
